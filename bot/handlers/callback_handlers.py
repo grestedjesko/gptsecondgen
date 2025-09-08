@@ -1,0 +1,105 @@
+from aiogram import Router, F
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.use_cases.usecases import UseCases
+from src.adapters.db.user_model_repository import UserModelRepository
+
+callback_router = Router()
+
+
+@callback_router.callback_query(F.data == 'select_ai')
+async def select_ai(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.select_ai.show_menu(user_id=call.from_user.id, session=session)
+    try:
+        await call.message.edit_text(text=text, reply_markup=kbd)
+    except Exception as e:
+        print(e)
+
+@callback_router.callback_query(F.data.startswith("set_model:"))
+async def set_model(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    _, mid_str = call.data.split(":")
+    model_id = int(mid_str)
+
+    selected = await UserModelRepository.get_selected_model_id(user_id=call.from_user.id,
+                                                               session=session)
+    if selected == model_id:
+        await call.answer('Модель уже выбрана')
+        return
+
+    text, kbd = await usecases.select_ai.set(user_id=call.from_user.id,
+                                             model_id=model_id,
+                                             session=session)
+    try:
+        await call.message.edit_text(text=text, reply_markup=kbd)
+        await call.answer()
+    except Exception as e:
+        print(e)
+
+
+@callback_router.callback_query(F.data == 'select_role')
+async def select_role(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd)
+
+
+@callback_router.callback_query(F.data.startswith("set_role:"))
+async def set_role(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    _, role_id = call.data.split(":")
+    role_id = int(role_id)
+    text, kbd = await usecases.role.set(user_id=call.from_user.id,
+                                        role_id=role_id,
+                                        session=session)
+    try:
+        await call.message.edit_text(text=text, reply_markup=kbd)
+    except Exception as e:
+        print(e)
+
+
+@callback_router.callback_query(F.data == 'edit_roles')
+async def edit_roles(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    pass
+
+
+@callback_router.callback_query(F.data == 'create_role')
+async def create_role(call: CallbackQuery, session:AsyncSession, usecases: UseCases, state: FSMContext):
+    text, kbd = await usecases.role.start_role_creation(user_id=call.from_user.id,
+                                                        session=session,
+                                                        state=state)
+    await call.message.edit_text(text=text, reply_markup=kbd)
+
+
+@callback_router.callback_query(F.data == 'main_menu')
+async def main_menu(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.start_menu.run(user_id=call.from_user.id,
+                                              session=session)
+    await call.message.edit_text(text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'profile')
+async def profile(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.profile.run(user_id=call.from_user.id, session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'subs_list')
+async def subs_list(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.subscription.show_subs_menu(user_id=call.from_user.id, session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data.startswith('subs_id='))
+async def subs_id(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    subs_id = int(call.data.replace('subs_id=', ''))
+    if subs_id == 1:
+        await start_trial(call, session, usecases)
+        return
+
+    text, kbd = await usecases.subscription.generate_payment(call=call, subs_id=subs_id, session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'start_trial')
+async def start_trial(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.subscription.generate_payment(call=call, subs_id=1, session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
