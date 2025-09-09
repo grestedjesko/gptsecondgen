@@ -37,7 +37,9 @@ class UserSubsRepository:
     @staticmethod
     async def get_subs_by_user_id(user_id: int, session: AsyncSession):
         query = (sa.select(UserSubs)
-                 .where(UserSubs.user_id == user_id)
+                 .where(UserSubs.user_id == user_id,
+                        UserSubs.status == SubscriptionStatus.ACTIVE,
+                        UserSubs.period_end > datetime.now())
                  .order_by(UserSubs.period_end.desc()))
         res = await session.execute(query)
         subs = res.scalars().first()

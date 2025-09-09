@@ -19,14 +19,20 @@ class ProfileUseCase:
         self.keyboard = keyboard
 
     async def run(self, user_id: int, session: AsyncSession):
-        subs_info = await UserSubsRepository.get_subs_by_user_id(user_id=user_id, session=session)
+        user_subs = await UserSubsRepository.get_subs_by_user_id(user_id=user_id, session=session)
+        if user_subs:
+            subtype_id = user_subs.subtype_id
+        else:
+            subtype_id = 0
+
+
         limits_by_class = await SubtypeLimitsRepository.get_all_limits_for_subtype(
-            subtype_id=subs_info.subtype_id,
+            subtype_id=subtype_id,
             session=session,
             redis=self.redis
         )
 
-        if subs_info.subtype_id == 0:
+        if subtype_id == 0:
             week_start = await get_week_start_date()
             usage_rows = await UsageRepository.get_all_week_usage(
                 user_id=user_id,
@@ -40,7 +46,6 @@ class ProfileUseCase:
                 session=session
             )
 
-        # { model_class_id: used_count }
         usage_by_class = defaultdict(int)
         for model_class_id, used_count in usage_rows:
             usage_by_class[model_class_id] = used_count or 0
@@ -61,14 +66,14 @@ class ProfileUseCase:
 
         generation_renew_date = await get_new_week_start_date()
 
-        if subs_info.subtype_id == 0:
+        if subtype_id == 0:
             text = profile_text_no_subs % (limit_text, generation_renew_date)
         else:
-            renewal_status = 'Активировано' if subs_info.auto_renewal else 'Не активировано ❌'
-            text = profile_text_subs % (limit_text, subs_info.end_date, renewal_status)
+            renewal_status = 'Активировано' if user_subs.auto_renewal else 'Не активировано ❌'
+            text = profile_text_subs % (limit_text, user_subs.end_date, renewal_status)
 
-        trial_used = subs_info.trial
-        kbd = self.keyboard.profile_menu(has_subs=bool(subs_info.subtype_id), trial_used=trial_used)
+        trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
+        kbd = self.keyboard.profile_menu(has_subs=bool(subtype_id), trial_used=trial_used)
         return text, kbd
 
 
