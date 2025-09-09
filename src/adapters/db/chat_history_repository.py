@@ -1,12 +1,15 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import AiContext
+from app.db.models.user_ai_context import MessageType
 from src.services.ai.data_classes import MessageDTO
 import sqlalchemy as sa
 
 
 class ChatHistoryRepository:
     @staticmethod
-    async def save_message(session: AsyncSession, user_id: int, author_id: int, text: str, message_type: str):
+    async def save_message(session: AsyncSession, user_id: int, author_id: int, text: str, message_type: MessageType):
+        print('message type')
+        print(message_type)
         await session.execute(
             sa.insert(AiContext).values(
                 user_id=user_id,
@@ -22,11 +25,20 @@ class ChatHistoryRepository:
         query = (
             sa.select(AiContext.text, AiContext.author_id, AiContext.message_type)
             .where(AiContext.user_id == user_id, AiContext.is_deleted == False)
-            .order_by(AiContext.created_at.desc())
+            .order_by(AiContext.created_at)
             .limit(limit)
         )
         result = await session.execute(query)
-        return result.all()  # Вернем raw-список
+        rows = result.all()
+
+        return [
+            MessageDTO(
+                text=text,
+                author_id=author_id,
+                message_type=message_type,
+            )
+            for (text, author_id, message_type) in rows
+        ]
 
     @staticmethod
     async def clear_history(session: AsyncSession, user_id: int) -> None:

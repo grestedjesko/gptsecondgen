@@ -1,25 +1,26 @@
 from aiogram.types import Message
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models.user_ai_context import MessageType
 from src.adapters.s3.s3_client import S3Client
 from src.adapters.db.user_model_repository import UserModelRepository
 from src.adapters.cache.redis_cache import RedisCache
-from src.services.chat_history_service import ChatHistoryService
 from src.services.permission.permission_service import PermissionService, PhotoPermissionStatus
 from src.adapters.db.user_subs_repository import UserSubsRepository
 from src.use_cases.process_message.process_message import ProcessMessageUseCase
+from src.services.ai.data_classes import MessageDTO
+from src.services.converter import SimpleFileToPDF
 
 
 class HandleDocumentMessageUseCase:
     def __init__(self,
                  redis: RedisCache,
                  s3client: S3Client,
-                 chat_history: ChatHistoryService,
                  permission_service: PermissionService,
                  process_message_usecase: ProcessMessageUseCase,):
         self.redis = redis
         self.s3 = s3client
-        self.chat_history = chat_history
         self.permission_service = permission_service
         self.process_message_usecase = process_message_usecase
 
@@ -49,29 +50,26 @@ class HandleDocumentMessageUseCase:
         filename = getattr(message.document, "file_name", None)
         mime_type = message.document.mime_type
 
-        key = f"uploads/{message.from_user.id}/{file_id}.pdf"
+        key = f"uploads/{message.from_user.id}/{file_id}1.pdf"
+
+        conv = SimpleFileToPDF()
+        file_bytes = conv.convert(file_bytes, filename=filename, mime_type=mime_type)
+
         pdf_link = await self.s3.upload_file(file_obj=file_bytes,
-                                             file_key=key,
-                                             filename=filename,
-                                             mime_type=mime_type)
+                                             file_key=key)
 
-        chat_history = ChatHistoryService(self.redis)
-        await chat_history.save_message(
-            user_id=message.from_user.id,
-            author_id=message.from_user.id,
-            text=pdf_link,
-            session=session,
-            message_type="file_url",
-            model_id=default_image_model
-        )
-
-        text = message.caption if message.caption else None
+        parts: list[MessageDTO] = [
+            MessageDTO(author_id=message.from_user.id, message_type=MessageType.FILE_URL, text=pdf_link)
+        ]
+        if message.caption:
+            parts.append(
+                MessageDTO(author_id=message.from_user.id, message_type=MessageType.TEXT, text=message.caption))
 
         await sended_message.edit_text('Пожалуйста, подождите немного')
-        await self.process_message_usecase.run(model_id=default_image_model,
+        await self.process_message_usecase.run(query_messages=parts,
+                                               model_id=default_image_model,
                                                user_id=message.from_user.id,
                                                sended_message=sended_message,
-                                               bot=bot,
+                                               bot_id=bot.id,
                                                session=session,
-                                               text=text,
                                                user_subtype=user_subtype)

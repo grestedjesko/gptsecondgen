@@ -34,7 +34,6 @@ class WhisperService:
             vad_filter=True
         )
         transcription_time = time.time() - start_time
-        print(transcription_time)
         text = "".join([segment.text for segment in segments]).strip()
 
         return text

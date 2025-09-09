@@ -30,7 +30,7 @@ async def seed_data(session: AsyncSession):
 
     # Модели
     session.add_all([
-        AiModels(id=1, name="GPT-4.1 mini", api_name="gpt-4.1-mini", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=1),
+        AiModels(id=1, name="GPT-5 nano", api_name="gpt-5-nano", api_provider='openai', api_link="https://api.aitunnel.ru/v1/", model_class_id=1),
         AiModels(id=2, name="ChatGPT 4.1", api_name="gpt-4.1", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=2),
         AiModels(id=3, name="DeepSeek V3", api_name="deepseek-v3", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=2),
         AiModels(id=4, name="o4 mini", api_name="o4-mini", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=3),

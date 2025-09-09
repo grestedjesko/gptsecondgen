@@ -68,7 +68,7 @@ class SimpleFileToPDF:
     def convert(self, file_bytes, filename: Optional[str] = None, mime_type: Optional[str] = None) -> bytes:
         ext = self._detect_ext(filename, mime_type)
         if ext == '.pdf':
-            return file_bytes
+            return self._to_input_bytes(file_bytes)
 
         if ext not in self.SUPPORTED:
             raise ValueError(f"Неподдерживаемое расширение: {ext}. Поддерживаются: {', '.join(sorted(self.SUPPORTED))}")

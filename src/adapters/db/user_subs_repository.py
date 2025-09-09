@@ -5,7 +5,7 @@ from datetime import datetime
 from src.adapters.cache.redis_cache import RedisCache
 from app.db.models.user_subs import SubscriptionStatus
 
-CACHE_TTL = 3600  # 1 час
+CACHE_TTL = 1  # 1 час
 
 class UserSubsRepository:
     @staticmethod
@@ -19,12 +19,16 @@ class UserSubsRepository:
         cache_key = f"user_subs_type:{user_id}"
         cached = await redis.get(cache_key)
         if cached is not None:
+            print(cached)
             return int(cached)  # значение — int, а не JSON
 
-        subs = await UserSubsRepository.get_subs_by_user_id(user_id=user_id,
-                                                            session=session)
+        query = (sa.select(UserSubs.type)
+                 .where(UserSubs.user_id == user_id)
+                 .order_by(UserSubs.period_end.desc()))
+        res = await session.execute(query)
+        subs_type = res.one_or_none()
 
-        value = subs if subs is not None else 0
+        value = subs_type[0] if subs_type else 0
 
         await redis.set(cache_key, str(value), ttl=CACHE_TTL)
         return value

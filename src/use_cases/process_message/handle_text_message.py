@@ -1,12 +1,15 @@
 from aiogram.types import Message
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models.user_ai_context import MessageType
 from src.adapters.cache.redis_cache import RedisCache
 from src.services.ai.model_selection_service import ModelSelectionService
 from src.services.permission.permission_service import PermissionService
 from src.use_cases.process_message.process_message import ProcessMessageUseCase
 from src.services.ai.model_selection_service import ModelAccessStatus
 from src.adapters.db.user_subs_repository import UserSubsRepository
+from src.services.ai.data_classes import MessageDTO
 
 
 class HandleTextMessageUseCase:
@@ -34,11 +37,15 @@ class HandleTextMessageUseCase:
         if not model.status == ModelAccessStatus.OK:
             return
 
-        await self.process_message_usecase.run(model_id=model.id,
+        user_id = message.from_user.id
+        text = message.text
+
+        current_message = [MessageDTO(author_id=user_id, message_type=MessageType.TEXT, text=text)]
+
+        await self.process_message_usecase.run(query_messages=current_message,
+                                               model_id=model.id,
                                                user_id=message.from_user.id,
                                                user_subtype=user_subtype,
                                                sended_message=sended_message,
-                                               bot=bot,
-                                               session=session,
-                                               text=message.text)
-
+                                               bot_id=bot.id,
+                                               session=session,)

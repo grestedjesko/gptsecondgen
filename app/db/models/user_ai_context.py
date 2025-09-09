@@ -3,6 +3,12 @@ from sqlalchemy import BigInteger, Text, ForeignKey, func,  Enum, Boolean, DateT
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.db.base import Base
 from datetime import datetime
+import enum
+
+class MessageType(enum.Enum):
+    TEXT = "text"
+    IMAGE_URL = "image_url"
+    FILE_URL = "file_url"
 
 
 class AiContext(Base):
@@ -11,9 +17,9 @@ class AiContext(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.user_id'), nullable=False)
     author_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     message_type: Mapped[str] = mapped_column(
-        Enum("text", "image_url", "file_url", name="message_type_enum"),
+        Enum(MessageType, name="message_type_enum"),
         nullable=False,
-        default="text"
+        default=MessageType.TEXT,
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 

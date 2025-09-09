@@ -72,13 +72,11 @@ class UseCases:
 
         self.handle_photo_message = HandlePhotoMessageUseCase(redis=redis,
                                                               s3client=s3_client,
-                                                              chat_history=chat_history_service,
                                                               permission_service=permission_service,
                                                               process_message_usecase=self.process_message)
 
         self.handle_document_message = HandleDocumentMessageUseCase(redis=redis,
                                                                     s3client=s3_client,
-                                                                    chat_history=chat_history_service,
                                                                     permission_service=permission_service,
                                                                     process_message_usecase=self.process_message)
 

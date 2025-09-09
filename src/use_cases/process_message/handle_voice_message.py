@@ -1,5 +1,5 @@
 from aiogram.types import Message
-
+from src.services.ai.data_classes import MessageDTO
 from src.use_cases.process_message.process_message import ProcessMessageUseCase
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +10,8 @@ from src.services.ai.model_selection_service import ModelSelectionService
 from src.adapters.db.user_subs_repository import UserSubsRepository
 from src.services.ai.model_selection_service import ModelAccessStatus
 from src.services.permission.permission_service import VoicePermissionStatus
+from app.db.models.user_ai_context import MessageType
+
 
 class HandleVoiceMessageUseCase:
     def __init__(self,
@@ -55,11 +57,16 @@ class HandleVoiceMessageUseCase:
         if not model.status == ModelAccessStatus.OK:
             return
 
+        print(text)
         await sended_message.edit_text('Пожалуйста, подождите немного')
-        await self.process_message_usecase.run(model_id=model.id,
+
+        user_id = message.from_user.id
+        current_message = [MessageDTO(author_id=user_id, message_type=MessageType.TEXT, text=text)]
+
+        await self.process_message_usecase.run(query_messages=current_message,
+                                               model_id=model.id,
                                                user_id=message.from_user.id,
                                                sended_message=sended_message,
-                                               bot=bot,
+                                               bot_id=bot.id,
                                                session=session,
-                                               text=text,
                                                user_subtype=user_subtype)

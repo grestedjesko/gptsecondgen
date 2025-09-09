@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 
 from aiobotocore.session import get_session
 from botocore.exceptions import ClientError
-from src.services.converter import SimpleFileToPDF
 
 
 class S3Client:
@@ -33,17 +32,12 @@ class S3Client:
     async def upload_file(
             self,
             file_obj: bin,
-            file_key: str,
-            filename: str,
-            mime_type: str,
+            file_key: str
     ):
         if await self.file_exists(file_key):
             print(f"File {file_key} already exists in {self.bucket_name}")
             return f"{self.domain_name}/{file_key}"
         try:
-            conv = SimpleFileToPDF()
-            file_obj = conv.convert(file_obj, filename=filename, mime_type=mime_type)
-
             async with self.get_client() as client:
                 await client.put_object(
                     Bucket=self.bucket_name,

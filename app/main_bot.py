@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, Request
 from typing import AsyncGenerator
-
+from seed_data import seed_data
 
 def get_di(request: Request):
     return request.app.state.di

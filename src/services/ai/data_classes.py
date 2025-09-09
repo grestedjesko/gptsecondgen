@@ -1,12 +1,13 @@
 from dataclasses import dataclass
-from datetime import datetime
+
+from app.db.models.user_ai_context import MessageType
+
 
 @dataclass
 class MessageDTO:
     text: str
     author_id: int
-    message_type: str
-
+    message_type: MessageType
 
 @dataclass
 class Result:

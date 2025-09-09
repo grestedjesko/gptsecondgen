@@ -46,6 +46,7 @@ class OpenAIProvider(ChatProvider):
         full_messages = [{"role": "system", "content": prompt}] + list(messages)
 
         client = self._get_client(base_url)
+        print('full_messages', full_messages)
 
         resp = await client.chat.completions.create(
             model=model,
