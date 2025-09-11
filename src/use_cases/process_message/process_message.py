@@ -1,7 +1,11 @@
 from datetime import date
+
+from aiogram.enums import ParseMode
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.types import Message
 
+from app.db.models.user_ai_context import MessageType
+from src.adapters.db.dialog_repository import DialogRepository
 from src.adapters.db.usage_repository import UsageRepository
 from src.services.chat_history_service import ChatHistoryService
 from src.services.ai.prompt_service import PromptService
@@ -9,7 +13,10 @@ from src.adapters.ai_providers.registry import ProviderRegistry
 from src.adapters.db.model_repository import ModelRepository
 from src.services.utils import get_week_start_date
 from src.services.ai.data_classes import MessageDTO
+from src.services.html_sanitizer import sanitize_to_telegram_html
+import re
 
+TELEGRAM_LIMIT = 4096
 
 class ProcessMessageUseCase:
     def __init__(self,
@@ -30,9 +37,16 @@ class ProcessMessageUseCase:
         bot_id: int,
         session: AsyncSession
     ):
+        current_dialog = await DialogRepository.get_last(user_id=user_id, session=session)
+        if not current_dialog:
+            dialog_name = 'Dialog name'
+            current_dialog = await DialogRepository.create(user_id=user_id,
+                                                           name=dialog_name,
+                                                           session=session)
+
         prompt = await self.prompt_service.get_prompt(user_id=user_id, session=session)
 
-        chat_history = await self.chat_history.get_history(user_id=user_id,
+        chat_history = await self.chat_history.get_history(dialog_id=current_dialog.id,
                                                            bot_id=bot_id,
                                                            model_id=model_id,
                                                            session=session)
@@ -53,7 +67,26 @@ class ProcessMessageUseCase:
                                                                   messages=messages_for_llm,
                                                                   model=model_config.api_name,
                                                                   base_url=model_config.api_link)
-        await sended_message.edit_text(result_text)
+
+        safe_text = sanitize_to_telegram_html(result_text)
+
+        if not result_text:
+            return await sended_message.edit_text('Ошибка')
+
+        await self.edit_long_message(sended_message, safe_text, parse_mode='html')
+
+        result_message = [MessageDTO(text=result_text, author_id=user_id, message_type=MessageType.TEXT)]
+
+        messages_to_save = query_messages + result_message
+
+        last_id = await self.chat_history.save_messages(
+            messages=messages_to_save,
+            dialog_id=current_dialog.id,
+            author_id=user_id,
+            session=session,
+        )
+
+        print(last_id)
 
         if user_subtype == 0:
             await UsageRepository.add_week_usage(messages_used=1,
@@ -69,22 +102,21 @@ class ProcessMessageUseCase:
                                                 model_class=model_config.ai_class,
                                                 day=date.today(),
                                                 session=session)
-        if result_text:
-            for query_message in query_messages:
-                print(query_message.message_type)
-                await self.chat_history.save_message(
-                    user_id=user_id,
-                    author_id = user_id,
-                    text = query_message.text,
-                    session = session,
-                    message_type = query_message.message_type,
-                    model_id = model_id
-                )
 
-            await self.chat_history.save_message(
-                user_id=user_id,
-                author_id=bot_id,
-                text=result_text,
-                session=session,
-                model_id=model_id
-            )
+    async def edit_long_message(self, msg, text, parse_mode=None):
+        # сначала пробуем как есть
+        chunks = [text[i:i + TELEGRAM_LIMIT] for i in range(0, len(text), TELEGRAM_LIMIT)]
+        if len(chunks) == 1:
+            try:
+                await msg.edit_text(text, parse_mode=parse_mode)
+                return
+            except Exception:
+                pass
+        plain = re.sub(r"<[^>]*>", "", text)
+        chunks = [plain[i:i + TELEGRAM_LIMIT] for i in range(0, len(plain), TELEGRAM_LIMIT)]
+        try:
+            await msg.edit_text(chunks[0])
+        except Exception as e:
+            await msg.reply(chunks[0])
+        for ch in chunks[1:]:
+            await msg.reply(ch)

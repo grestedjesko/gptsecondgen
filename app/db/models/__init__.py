@@ -15,12 +15,14 @@ from .user_subs import UserSubs
 from .user_trial_usage import UserTrialUsage
 from .user_usage import UserDailyUsage, UserWeeklyUsage
 from .users import User
+from .dialog import Dialog
 
 __all__ = [
     'AiModels',
     'AiModelsClass',
     'AiRoles',
     'ChannelsToSubcribe',
+    'Dialog',
     'Invoice',
     'Payment',
     'SubTypeLimits',

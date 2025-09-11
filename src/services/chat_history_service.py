@@ -45,7 +45,7 @@ class ChatHistoryService:
 
     async def save_message(
         self,
-        user_id: int,
+        dialog_id: int,
         author_id: int,
         text: str,
         session: AsyncSession,
@@ -53,38 +53,56 @@ class ChatHistoryService:
         model_id: int = 1
     ):
         await ChatHistoryRepository.save_message(session=session,
-                                                 user_id=user_id,
+                                                 dialog_id=dialog_id,
                                                  author_id=author_id,
                                                  text=text,
                                                  message_type=message_type)
 
-        key = ChatHistoryService._build_cache_key(user_id, model_id)
+        await session.commit()
+
+        key = ChatHistoryService._build_cache_key(dialog_id, model_id)
         entry = ChatHistoryService._msg_to_dict(MessageDTO(text=text, author_id=author_id, message_type=message_type))
         await self.redis.lpush(key, json.dumps(entry))
         await self.redis.ltrim(key, 0, HISTORY_LIMIT - 1)
         await self.redis.expire(key, CACHE_TTL_SECONDS)
 
+
+    async def save_messages(self,
+                            messages: list[MessageDTO],
+                            dialog_id: int,
+                            author_id: int,
+                            session: AsyncSession,):
+        for message in messages:
+            public_id = await ChatHistoryRepository.save_message(
+                dialog_id=dialog_id,
+                author_id=author_id,
+                text=message.text,
+                message_type=message.message_type,
+                session=session,
+            )
+        await session.commit()
+        return public_id
+
+
     async def get_history(
         self,
-        user_id: int,
+        dialog_id: int,
         bot_id: int,
         model_id: int,
         session: AsyncSession
     ) -> list[ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam]:
         print('get history')
 
-        key = ChatHistoryService._build_cache_key(user_id, model_id)
+        key = ChatHistoryService._build_cache_key(dialog_id, model_id)
 
         cached = await self.redis.lrange(key, 0, HISTORY_LIMIT - 1)
         cached = False
-        print(cached)
         if cached:
             messages = [ChatHistoryService._dict_to_msg(json.loads(item)) for item in reversed(cached)]
         else:
-            print('else')
             history_messages = await ChatHistoryRepository.load_history(session=session,
-                                                                    user_id=user_id,
-                                                                    limit=HISTORY_LIMIT)
+                                                                        dialog_id=dialog_id,
+                                                                        limit=HISTORY_LIMIT)
 
             messages = []
             image_count = 0

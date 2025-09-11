@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def on_startup():
-        #await init_models(engine)
+        await init_models(engine)
         #async with session_factory() as session:
         #    await seed_data(session=session)
         pass

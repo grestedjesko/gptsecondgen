@@ -1,7 +1,6 @@
 from sqlalchemy import (
     String, func, Integer, ForeignKey, DateTime
 )
-from uuid6 import uuid7
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from app.db.base import Base
 import enum
@@ -9,6 +8,7 @@ from sqlalchemy import Enum as SAEnum
 from datetime import datetime
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
+from uuid6 import uuid7
 
 class InvoiceStatus(enum.Enum):
     CREATED  = "created"     # выставлен, ждём оплату

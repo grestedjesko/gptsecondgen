@@ -20,7 +20,7 @@ class User(Base):
     subs = relationship("UserSubs", back_populates="user")
     daily_usage = relationship("UserDailyUsage", back_populates="user")
     weekly_usage = relationship("UserWeeklyUsage", back_populates="user")
-    ai_context = relationship("AiContext", back_populates="user")
     user_trial_usage = relationship("UserTrialUsage", back_populates="user")
     invoices = relationship("Invoice", back_populates="user")
     user_payment_methods = relationship("UserPaymentMethod", back_populates="user")
+    dialogs = relationship("Dialog", back_populates="user")
