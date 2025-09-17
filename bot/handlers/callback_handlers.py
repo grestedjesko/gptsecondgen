@@ -39,7 +39,13 @@ async def set_model(call: CallbackQuery, session: AsyncSession, usecases: UseCas
 
 @callback_router.callback_query(F.data == 'select_role')
 async def select_role(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session, page=0)
+    await call.message.edit_text(text=text, reply_markup=kbd)
+@callback_router.callback_query(F.data.startswith('roles_page:'))
+async def roles_page(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    _, page_str = call.data.split(':')
+    page = int(page_str)
+    text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session, page=page)
     await call.message.edit_text(text=text, reply_markup=kbd)
 
 
@@ -56,9 +62,10 @@ async def set_role(call: CallbackQuery, session: AsyncSession, usecases: UseCase
         print(e)
 
 
-@callback_router.callback_query(F.data == 'edit_roles')
+@callback_router.callback_query(F.data == 'custom_roles')
 async def edit_roles(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    pass
+    text, kbd = await usecases.role.show_custom(user_id=call.from_user.id, session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd)
 
 
 @callback_router.callback_query(F.data == 'create_role')
@@ -66,6 +73,26 @@ async def create_role(call: CallbackQuery, session:AsyncSession, usecases: UseCa
     text, kbd = await usecases.role.start_role_creation(user_id=call.from_user.id,
                                                         session=session,
                                                         state=state)
+    await call.message.delete()
+    await call.message.answer(text=text, reply_markup=kbd)
+
+
+@callback_router.callback_query(F.data.contains('settings_role_id='))
+async def role_settings(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    # callback_data is like 'settings_role_id=123'
+    role_id = int(call.data.split('=')[1])
+    text, kbd = await usecases.role.show_settings(user_id=call.from_user.id,
+                                                  role_id=role_id,
+                                                  session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data.contains('delete_role_id='))
+async def delete_role(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    role_id = int(call.data.split('=')[1])
+    text, kbd = await usecases.role.delete(user_id=call.from_user.id,
+                                           role_id=role_id,
+                                           session=session)
     await call.message.edit_text(text=text, reply_markup=kbd)
 
 

@@ -11,6 +11,7 @@ from collections import defaultdict
 from config.texts import (default_limit_text,
                           profile_text_no_subs,
                           profile_text_subs)
+from datetime import timedelta
 
 class ProfileUseCase:
     def __init__(self, redis: RedisCache, config: Settings, keyboard: Keyboard):
@@ -21,7 +22,7 @@ class ProfileUseCase:
     async def run(self, user_id: int, session: AsyncSession):
         user_subs = await UserSubsRepository.get_subs_by_user_id(user_id=user_id, session=session)
         if user_subs:
-            subtype_id = user_subs.subtype_id
+            subtype_id = user_subs.type
         else:
             subtype_id = 0
 
@@ -64,13 +65,16 @@ class ProfileUseCase:
 
         limit_text = await self.build_limit_text(profile_limits=result)
 
-        generation_renew_date = await get_new_week_start_date()
 
         if subtype_id == 0:
+            generation_renew_date = await get_new_week_start_date()
             text = profile_text_no_subs % (limit_text, generation_renew_date)
         else:
-            renewal_status = 'Активировано' if user_subs.auto_renewal else 'Не активировано ❌'
-            text = profile_text_subs % (limit_text, user_subs.end_date, renewal_status)
+            generation_renew_date = datetime.today().date() + timedelta(days=1)
+            generation_renew_date = datetime.strftime(generation_renew_date, "%d.%m.%Y 00:00")
+            renewal_status = 'Активировано' if user_subs.will_renew else 'Не активировано ❌'
+            period_end = datetime.strftime(user_subs.period_end, '%d.%m.%Y %H:%M')
+            text = profile_text_subs % (limit_text, generation_renew_date, period_end, renewal_status)
 
         trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
         kbd = self.keyboard.profile_menu(has_subs=bool(subtype_id), trial_used=trial_used)
