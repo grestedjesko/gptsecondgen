@@ -8,6 +8,7 @@ from app.db.base import Base
 from bot.bot_loader import register_handlers
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.types import BotCommand, BotCommandScopeAllPrivateChats
 from fastapi import Depends, Request
 from typing import AsyncGenerator
 from seed_data import seed_data
@@ -28,6 +29,45 @@ async def init_models(engine):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+
+async def set_private_commands_i18n(bot: Bot):
+    await bot.delete_my_commands(
+        scope=BotCommandScopeAllPrivateChats(),
+    )
+
+    await bot.set_my_commands(
+        commands=[
+            BotCommand(command="start",         description="🏠 Главное меню"),
+            BotCommand(command="select_ai",     description="🤖 Выбрать нейросеть"),
+            BotCommand(command="select_role",   description="🤠 Выбрать роль"),
+            BotCommand(command="profile",       description="👤 Профиль"),
+            BotCommand(command="clear_history", description="🗑 Очистить диалог"),
+            BotCommand(command="policy",        description="📄 Пользовательское соглашение"),
+        ],
+        scope=BotCommandScopeAllPrivateChats(),
+        language_code="ru",
+    )
+
+    await bot.set_my_commands(
+        commands=[
+            BotCommand(command="start",         description="🏠 Home"),
+            BotCommand(command="select_ai",     description="🤖 Choose AI"),
+            BotCommand(command="select_role",   description="🤠 Choose role"),
+            BotCommand(command="profile",       description="👤 Profile"),
+            BotCommand(command="clear_history", description="🗑 Clear dialog"),
+            BotCommand(command="policy",        description="📄 Terms of Use"),
+        ],
+        scope=BotCommandScopeAllPrivateChats(),
+        language_code="en",
+    )
+
+    await bot.set_my_commands(
+        commands=[
+            BotCommand(command="start", description="Start"),
+            BotCommand(command="help",  description="Help"),
+        ],
+        scope=BotCommandScopeAllPrivateChats(),
+    )
 
 def create_app() -> FastAPI:
     config = Settings()
@@ -52,6 +92,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def on_startup():
         await init_models(engine)
+        await set_private_commands_i18n(bot)
         #async with session_factory() as session:
         #    await seed_data(session=session)
         pass

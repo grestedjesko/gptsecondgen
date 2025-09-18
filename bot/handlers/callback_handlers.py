@@ -36,11 +36,12 @@ async def set_model(call: CallbackQuery, session: AsyncSession, usecases: UseCas
     except Exception as e:
         print(e)
 
-
 @callback_router.callback_query(F.data == 'select_role')
 async def select_role(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session, page=0)
     await call.message.edit_text(text=text, reply_markup=kbd)
+
+
 @callback_router.callback_query(F.data.startswith('roles_page:'))
 async def roles_page(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     _, page_str = call.data.split(':')

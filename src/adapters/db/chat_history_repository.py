@@ -41,9 +41,3 @@ class ChatHistoryRepository:
             )
             for (text, author_id, message_type) in rows
         ]
-
-    @staticmethod
-    async def clear_history(session: AsyncSession, user_id: int) -> None:
-        await session.execute(
-            sa.update(AiContext).values(is_deleted=True).where(AiContext.user_id == user_id))
-        await session.commit()

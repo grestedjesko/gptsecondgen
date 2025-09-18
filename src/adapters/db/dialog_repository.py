@@ -18,3 +18,9 @@ class DialogRepository:
         await session.flush()
         await session.commit()
         return dialog
+
+    @staticmethod
+    async def end(dialog_id: int, user_id: int, session: AsyncSession):
+        stmt = sa.update(Dialog).values(is_active=False).where(Dialog.user_id == user_id,
+                                                               Dialog.id == dialog_id)
+        await session.execute(stmt)
