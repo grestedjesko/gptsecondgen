@@ -116,6 +116,12 @@ class UserSubsRepository:
         stmt = sa.update(UserSubs).values(payment_method=payment_method_id).where(UserSubs.id == user_subs_id)
         await session.execute(stmt)
 
+    @staticmethod
+    async def set_will_renew(user_id: int, will_renew: bool, session: AsyncSession):
+        stmt = (sa.update(UserSubs)
+                .values(will_renew=will_renew)
+                .where(UserSubs.user_id == user_id, UserSubs.status == SubscriptionStatus.ACTIVE))
+        await session.execute(stmt)
 
     @staticmethod
     async def get_active_subs(now: datetime, session: AsyncSession):

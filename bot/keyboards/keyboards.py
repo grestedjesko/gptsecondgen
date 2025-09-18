@@ -208,6 +208,17 @@ class Keyboard:
         return builder.as_markup()
 
     @staticmethod
+    def subs_settings_keyboard(will_renew: bool):
+        builder = InlineKeyboardBuilder()
+        if will_renew:
+            builder.add(InlineKeyboardButton(text='⏹ Остановить продление', callback_data='subs_stop_renew'))
+        else:
+            builder.add(InlineKeyboardButton(text='🔁 Включить продление', callback_data='subs_extend'))
+        builder.add(InlineKeyboardButton(text='Назад', callback_data='profile'))
+        builder.adjust(1)
+        return builder.as_markup()
+
+    @staticmethod
     def cancel_keyboard():
         return ReplyKeyboardMarkup(
             keyboard=[

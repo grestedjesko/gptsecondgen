@@ -37,6 +37,22 @@ class SubscriptionUseCase:
 
         return text, keyboard
 
+    async def show_settings(self, user_id: int, session: AsyncSession):
+        subs = await UserSubsRepository.get_subs_by_user_id(user_id=user_id, session=session)
+        will_renew = bool(subs and subs.will_renew)
+        text = "Управление подпиской"
+        kbd = Keyboard.subs_settings_keyboard(will_renew=will_renew)
+        return text, kbd
+
+    async def stop_renew(self, user_id: int, session: AsyncSession):
+        await UserSubsRepository.set_will_renew(user_id=user_id, will_renew=False, session=session)
+        await session.commit()
+        return await self.show_settings(user_id=user_id, session=session)
+
+    async def enable_renew(self, user_id: int, session: AsyncSession):
+        await UserSubsRepository.set_will_renew(user_id=user_id, will_renew=True, session=session)
+        await session.commit()
+        return await self.show_settings(user_id=user_id, session=session)
 
     async def generate_payment(self, call: CallbackQuery, subs_id: int, session: AsyncSession):
         user_id = call.from_user.id
