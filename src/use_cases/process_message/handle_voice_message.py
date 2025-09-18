@@ -6,9 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.services.permission.permission_service import PermissionService
 from src.services.whisper_service import WhisperService
 from src.adapters.cache.redis_cache import RedisCache
-from src.services.ai.model_selection_service import ModelSelectionService
 from src.adapters.db.user_subs_repository import UserSubsRepository
-from src.services.ai.model_selection_service import ModelAccessStatus
 from src.services.permission.permission_service import VoicePermissionStatus
 from app.db.models.user_ai_context import MessageType
 
@@ -17,12 +15,10 @@ class HandleVoiceMessageUseCase:
     def __init__(self,
                  redis: RedisCache,
                  whisper: WhisperService,
-                 model_selection_service: ModelSelectionService,
                  permission_service: PermissionService,
                  process_message_usecase: ProcessMessageUseCase):
         self.redis = redis
         self.whisper = whisper
-        self.model_selection_service = model_selection_service
         self.permission_serivce = permission_service
         self.process_message_usecase = process_message_usecase
 
@@ -50,21 +46,12 @@ class HandleVoiceMessageUseCase:
         await sended_message.edit_text('🎙 Слушаю голосовое сообщение ...')
         text = await self.whisper.transcribe_voice(message, bot)
 
-        model = await self.model_selection_service.get_model(user_id=message.from_user.id,
-                                                             text=text,
-                                                             session=session,
-                                                             user_subtype=user_subtype)
-        if not model.status == ModelAccessStatus.OK:
-            return
-
-        print(text)
         await sended_message.edit_text('Пожалуйста, подождите немного')
 
         user_id = message.from_user.id
         current_message = [MessageDTO(author_id=user_id, message_type=MessageType.TEXT, text=text)]
 
         await self.process_message_usecase.run(query_messages=current_message,
-                                               model_id=model.id,
                                                user_id=message.from_user.id,
                                                sended_message=sended_message,
                                                bot_id=bot.id,

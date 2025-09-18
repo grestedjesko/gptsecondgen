@@ -5,8 +5,9 @@ from src.adapters.cache.redis_cache import RedisCache
 from src.services.ai.data_classes import ModelConfig, ModelInfo
 
 import json
+from typing import Optional
 
-CACHE_TTL = 900
+CACHE_TTL = 1
 
 
 class ModelRepository:
@@ -19,7 +20,7 @@ class ModelRepository:
         cached = await redis.get(cache_key)
         if cached:
             pass
-            return json.loads(cached)
+            #return json.loads(cached)
 
         query = sa.select(AiModels.id, AiModels.name, AiModels.model_class_id).order_by(AiModels.id)
         result = await session.execute(query)
@@ -32,7 +33,7 @@ class ModelRepository:
 
 
     @staticmethod
-    async def get_all_models_name(session: AsyncSession, redis: RedisCache) -> list[tuple[int, str]]:
+    async def get_all_models_id(session: AsyncSession, redis: RedisCache) -> list[tuple[int, str]]:
         """
         Возвращает список моделей с полями: (id, name)
         """
@@ -41,14 +42,12 @@ class ModelRepository:
         if cached:
             return json.loads(cached)
 
-        query = sa.select(AiModels.id, AiModels.name)
+        query = sa.select(AiModels.id)
         result = await session.execute(query)
-        names = result.fetchall()
+        ids = result.fetchall()
 
-        names_list = [tuple(row) for row in names]
-
-        await redis.set(cache_key, json.dumps(names_list), ttl=CACHE_TTL)
-        return names_list
+        await redis.set(cache_key, json.dumps(ids), ttl=CACHE_TTL)
+        return ids
 
 
     @staticmethod
@@ -95,6 +94,7 @@ class ModelRepository:
         await redis.set(cache_key, json.dumps(payload), ttl=CACHE_TTL)
 
         return ModelInfo(**payload)  # return dot-access object
+
 
     @staticmethod
     async def get_allowed_classes(subtype_id: int, session: AsyncSession, redis: RedisCache):
@@ -162,3 +162,10 @@ class ModelRepository:
             api_provider=row.api_provider,
             api_link=row.api_link
         )
+
+    @staticmethod
+    async def get_allowed_models(allowed_classes: Optional[list[int]], session: AsyncSession):
+        query = sa.select(AiModels.id).where(AiModels.model_class_id.in_(allowed_classes), AiModels.id != 1)
+        result = await session.execute(query)
+        allowed_model_ids = [row[0] for row in result.fetchall()]
+        return allowed_model_ids

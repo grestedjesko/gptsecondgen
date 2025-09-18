@@ -32,6 +32,7 @@ def setup_di(di, config: Settings):
                                            subs_config=SubscriptionConfig())
 
     model_selection_service = ModelSelectionService(config=config,
+                                                    ai_providers=ProviderRegistry,
                                                     redis=redis,
                                                     permission_service=permission_service)
 

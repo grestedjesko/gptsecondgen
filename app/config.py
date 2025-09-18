@@ -24,16 +24,8 @@ class Settings(BaseSettings):
     webapp_url: str
 
     auto_model: str
-    auto_model_token: Optional[str] = ""
-    auto_model_provider: Optional[str] = ""
-    auto_model_prompt: str = """Ты — классификатор. Отвечай одним словом согласно инструкции:
-- повседневные задачи, простая математика: gpt-4.1-mini
-- кодинг: gpt-4.1
-- сложный кодинг: o4-mini
-- интернет-поиск, доклады: sonar
-- научные исследования, поэтапные, много источников: sonar-deep-research
-- сложная математика: gemini-2.5-pro
-- генерация фото: gpt-4o-imag"""
+    auto_model_token: Optional[str]
+    auto_model_provider: Optional[str]
 
     light_class_id: int = 1
     normal_class_id: int = 2

@@ -54,10 +54,10 @@ class UseCases:
 
         self.process_message = ProcessMessageUseCase(chat_history_service=chat_history_service,
                                                      ai_providers=ai_providers,
-                                                     prompt_service=prompt_service)
+                                                     prompt_service=prompt_service,
+                                                     model_selection_service=model_selection_service,)
 
         self.handle_text_message = HandleTextMessageUseCase(redis=redis,
-                                                            model_selection_service=model_selection_service,
                                                             permission_service=permission_service,
                                                             process_message_usecase=self.process_message)
 
@@ -82,7 +82,6 @@ class UseCases:
 
         self.handle_voice_message = HandleVoiceMessageUseCase(redis=redis,
                                                               whisper=whisper,
-                                                              model_selection_service=model_selection_service,
                                                               permission_service=permission_service,
                                                               process_message_usecase=self.process_message)
 

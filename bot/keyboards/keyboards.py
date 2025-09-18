@@ -45,6 +45,7 @@ class Keyboard:
         allowed_classes: ['gpt-3.5', 'gpt-4', ...]
         """
         builder = InlineKeyboardBuilder()
+
         for mid, name, ai_class in ai_models_list:
             if ai_class in allowed_classes:
                 btn_text = name
@@ -52,16 +53,10 @@ class Keyboard:
                     btn_text = '✅ ' + btn_text
             else:
                 btn_text = f"🔒 {name}"
-            builder.add(
-                InlineKeyboardButton(
-                    text=btn_text,
-                    callback_data=f"set_model:{mid}"
-                )
-            )
-        # кнопка назад
+            builder.add(InlineKeyboardButton(text=btn_text, callback_data=f"set_model:{mid}"))
+
         builder.add(InlineKeyboardButton(text='Назад', callback_data='main_menu'))
-        # делим на строки по схеме: 2, 1, 2, 2, 2, 1
-        builder.adjust(2, 1, 2, 2, 2, 1)
+        builder.adjust(1, 2, 1, 2, 2, 2, 1)
         return builder.as_markup()
 
     @staticmethod

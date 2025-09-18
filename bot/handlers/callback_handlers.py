@@ -16,25 +16,24 @@ async def select_ai(call: CallbackQuery, session: AsyncSession, usecases: UseCas
     except Exception as e:
         print(e)
 
+
 @callback_router.callback_query(F.data.startswith("set_model:"))
 async def set_model(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     _, mid_str = call.data.split(":")
     model_id = int(mid_str)
 
-    selected = await UserModelRepository.get_selected_model_id(user_id=call.from_user.id,
-                                                               session=session)
+    selected = await UserModelRepository.get_selected_model_id(user_id=call.from_user.id, session=session)
     if selected == model_id:
         await call.answer('Модель уже выбрана')
         return
 
-    text, kbd = await usecases.select_ai.set(user_id=call.from_user.id,
-                                             model_id=model_id,
-                                             session=session)
+    text, kbd = await usecases.select_ai.set(user_id=call.from_user.id, model_id=model_id, session=session)
     try:
         await call.message.edit_text(text=text, reply_markup=kbd)
         await call.answer()
     except Exception as e:
         print(e)
+
 
 @callback_router.callback_query(F.data == 'select_role')
 async def select_role(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
@@ -115,15 +114,18 @@ async def settings_subs(call: CallbackQuery, session: AsyncSession, usecases: Us
     text, kbd = await usecases.subscription.show_settings(user_id=call.from_user.id, session=session)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
+
 @callback_router.callback_query(F.data == 'subs_stop_renew')
 async def subs_stop_renew(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     text, kbd = await usecases.subscription.stop_renew(user_id=call.from_user.id, session=session)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
+
 @callback_router.callback_query(F.data == 'subs_extend')
 async def subs_extend(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     text, kbd = await usecases.subscription.enable_renew(user_id=call.from_user.id, session=session)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
 
 @callback_router.callback_query(F.data == 'subs_list')
 async def subs_list(call: CallbackQuery, session: AsyncSession, usecases: UseCases):

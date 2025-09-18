@@ -30,15 +30,16 @@ async def seed_data(session: AsyncSession):
 
     # Модели
     session.add_all([
-        AiModels(id=1, name="GPT-5 nano", api_name="gpt-5-nano", api_provider='openai', api_link="https://api.aitunnel.ru/v1/", model_class_id=1),
-        AiModels(id=2, name="ChatGPT 4.1", api_name="gpt-4.1", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=2),
-        AiModels(id=3, name="DeepSeek V3", api_name="deepseek-v3", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=2),
-        AiModels(id=4, name="o4 mini", api_name="o4-mini", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=3),
-        AiModels(id=5, name="Perplexity", api_name="sonar", api_provider='openai', api_link="https://api.aitunnel.ru/v1/", model_class_id=3),
-        AiModels(id=6, name="Claude 3.7", api_name="claude-3-7-sonnet-latest", api_provider='openai', api_link="https://api.cometapi.com/v1/messages", model_class_id=3),
-        AiModels(id=7, name="Gemini 2.5 Pro", api_name="gemini-2.5-pro-preview-03-25", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=3),
-        AiModels(id=8, name="DALL•E 3", api_name="gpt-4o-image", api_provider='openai', api_link="https://api.cometapi.com/v1/images/generations", model_class_id=4),
-        AiModels(id=9, name="Midjourney", api_name="mj_fast_imagine", api_provider='openai', api_link="https://api.cometapi.com/mj/submit/imagine", model_class_id=5)
+        AiModels(id=1, name="Автоопределение модели", api_name="auto", api_provider='', api_link="", model_class_id=1),
+        AiModels(id=2, name="GPT-5 nano", api_name="gpt-5-nano", api_provider='openai', api_link="https://api.cometapi.com/v1/", model_class_id=1),
+        AiModels(id=3, name="ChatGPT 4.1", api_name="gpt-4.1", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=2),
+        AiModels(id=4, name="DeepSeek V3", api_name="deepseek-v3", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=2),
+        AiModels(id=5, name="o4 mini", api_name="o4-mini", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=3),
+        AiModels(id=6, name="Perplexity", api_name="sonar", api_provider='openai', api_link="https://api.aitunnel.ru/v1/", model_class_id=3),
+        AiModels(id=7, name="Claude 3.7", api_name="claude-3-7-sonnet-latest", api_provider='openai', api_link="https://api.cometapi.com/v1/messages", model_class_id=3),
+        AiModels(id=8, name="Gemini 2.5 Pro", api_name="gemini-2.5-pro-preview-03-25", api_provider='openai', api_link="https://api.cometapi.com/v1/chat/completions", model_class_id=3),
+        AiModels(id=9, name="DALL•E 3", api_name="gpt-4o-image", api_provider='openai', api_link="https://api.cometapi.com/v1/images/generations", model_class_id=4),
+        AiModels(id=10, name="Midjourney", api_name="mj_fast_imagine", api_provider='openai', api_link="https://api.cometapi.com/mj/submit/imagine", model_class_id=5)
     ])
 
     # Подтипы

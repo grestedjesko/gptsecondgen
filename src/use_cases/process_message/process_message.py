@@ -1,9 +1,7 @@
 from datetime import date
-
-from aiogram.enums import ParseMode
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.types import Message
-
+from src.services.ai.model_selection_service import ModelSelectionService, ModelAccessStatus
 from app.db.models.user_ai_context import MessageType
 from src.adapters.db.dialog_repository import DialogRepository
 from src.adapters.db.usage_repository import UsageRepository
@@ -18,24 +16,27 @@ import re
 
 TELEGRAM_LIMIT = 4096
 
+
 class ProcessMessageUseCase:
     def __init__(self,
                  ai_providers: ProviderRegistry,
                  prompt_service: PromptService,
-                 chat_history_service: ChatHistoryService,):
+                 chat_history_service: ChatHistoryService,
+                 model_selection_service: ModelSelectionService,):
         self.chat_history = chat_history_service
         self.prompt_service = prompt_service
         self.ai_providers = ai_providers
+        self.model_selection_service = model_selection_service
 
     async def run(
         self,
         query_messages: list[MessageDTO],
-        model_id: int,
         user_id: int,
         user_subtype: int,
         sended_message: Message,
         bot_id: int,
-        session: AsyncSession
+        session: AsyncSession,
+        model_id: int = None
     ):
         current_dialog = await DialogRepository.get_last(user_id=user_id, session=session)
         if not current_dialog:
@@ -54,6 +55,19 @@ class ProcessMessageUseCase:
         new_messages = [self.chat_history.msg_to_completion_param(i, bot_id) for i in query_messages]
 
         messages_for_llm = chat_history + new_messages
+
+
+        if not model_id:
+            model = await self.model_selection_service.get_model(user_id=user_id,
+                                                                 messages=messages_for_llm,
+                                                                 user_subtype=user_subtype,
+                                                                 session=session)
+
+            if not model.status == ModelAccessStatus.OK:
+                return
+
+            model_id = model.model_id
+
 
         model_config = await ModelRepository.get_model_config(model_id=model_id, session=session)
 
