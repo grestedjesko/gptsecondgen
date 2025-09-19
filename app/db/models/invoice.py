@@ -20,6 +20,7 @@ class InvoiceStatus(enum.Enum):
 class InvoiceReason(enum.Enum):
     INITIAL = "initial"
     RENEWAL = "renewal"
+    PAYMENT_METHOD_REBIND = "payment_method_rebind"
 
 class Invoice(Base):
     """
@@ -39,6 +40,8 @@ class Invoice(Base):
 
     user_subs_id = mapped_column(ForeignKey("user_subs.id"), nullable=True)
     cycle_index = mapped_column(Integer, nullable=True)
+
+    message_id = mapped_column(Integer, nullable=True)
 
     reason: Mapped[InvoiceReason] = mapped_column(SAEnum(InvoiceReason, name='invoice_reason'),
                                                   default=InvoiceReason.INITIAL, nullable=False)

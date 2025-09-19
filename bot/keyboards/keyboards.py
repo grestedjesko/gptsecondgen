@@ -206,9 +206,12 @@ class Keyboard:
     def subs_settings_keyboard(will_renew: bool):
         builder = InlineKeyboardBuilder()
         if will_renew:
-            builder.add(InlineKeyboardButton(text='⏹ Остановить продление', callback_data='subs_stop_renew'))
+            builder.add(InlineKeyboardButton(text='⏹ Отключить автопродление', callback_data='subs_stop_renew'))
         else:
-            builder.add(InlineKeyboardButton(text='🔁 Включить продление', callback_data='subs_extend'))
+            builder.add(InlineKeyboardButton(text='🔄 Включить автопродление', callback_data='rebind_payment_method'))
+        
+        builder.add(InlineKeyboardButton(text='🔥 Продлить подписку', callback_data='extend_subs'))
+        
         builder.add(InlineKeyboardButton(text='Назад', callback_data='profile'))
         builder.adjust(1)
         return builder.as_markup()
@@ -244,6 +247,23 @@ class Keyboard:
         for sub in available_subs:
             builder.add(InlineKeyboardButton(text=sub.name, callback_data=f'subs_id={sub.id}'))
         builder.add(InlineKeyboardButton(text='Назад', callback_data='main_menu'))
+        builder.adjust(1)
+        return builder.as_markup()
+
+    @staticmethod
+    def subs_extend_keyboard(available_subs: list):
+        builder = InlineKeyboardBuilder()
+        for sub in available_subs:
+            builder.add(InlineKeyboardButton(text=sub.name, callback_data=f'subs_id={sub.id}'))
+        builder.add(InlineKeyboardButton(text='Назад', callback_data='profile'))
+        builder.adjust(1)
+        return builder.as_markup()
+
+    @staticmethod
+    def payment_rebind_keyboard(link: str):
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text='💳 Оплатить 1 рубль', url=link))
+        builder.add(InlineKeyboardButton(text='Назад', callback_data='settings_subs'))
         builder.adjust(1)
         return builder.as_markup()
 

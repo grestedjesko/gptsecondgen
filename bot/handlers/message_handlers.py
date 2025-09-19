@@ -33,9 +33,12 @@ async def handle_photo(message: Message, bot: Bot, session: AsyncSession, usecas
 @message_router.message(F.text)
 async def handle_text(message: Message, bot: Bot, session: AsyncSession, usecases: UseCases):
     sended_message = await message.answer(text="🕓 Подождите немного, сейчас все будет готово")
-    async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
-        await usecases.handle_text_message.run(message, bot, sended_message, session)
-
+    return
+    try:
+        async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
+            await usecases.handle_text_message.run(message, bot, sended_message, session)
+    except Exception as e:
+        print(e)
 
 @message_router.message(F.document)
 async def handle_document(message: Message, bot: Bot, session: AsyncSession, usecases: UseCases):

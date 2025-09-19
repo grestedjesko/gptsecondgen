@@ -13,7 +13,8 @@ class InvoiceRepository:
                      reason: InvoiceReason = InvoiceReason.INITIAL,
                      status: InvoiceStatus = InvoiceStatus.CREATED,
                      user_subs_id: int = None,
-                     cycle_index: int = 0):
+                     cycle_index: int = 0,
+                     message_id: int = None,):
 
         uuid = str(uuid6.uuid7())
         invoice = Invoice(public_id=uuid,
@@ -22,7 +23,8 @@ class InvoiceRepository:
                           reason=reason,
                           status=status,
                           user_subs_id=user_subs_id,
-                          cycle_index=cycle_index)
+                          cycle_index=cycle_index,
+                          message_id=message_id)
         session.add(invoice)
         await session.flush()
         await session.commit()

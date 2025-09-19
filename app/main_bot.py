@@ -13,6 +13,9 @@ from fastapi import Depends, Request
 from typing import AsyncGenerator
 from seed_data import seed_data
 
+def get_bot(request: Request) -> Bot:
+    return request.app.bot
+
 def get_di(request: Request):
     return request.app.state.di
 
@@ -112,7 +115,7 @@ def create_app() -> FastAPI:
                           usecases=Depends(get_usecases),
                           session: AsyncSession = Depends(get_session),):
         data = await request.json()
-        await usecases.handle_payment.handle_payment(data=data, session=session)
+        await usecases.handle_payment.handle_payment(data=data, session=session, bot=bot)
         return {"status": "ok"}
 
     return app

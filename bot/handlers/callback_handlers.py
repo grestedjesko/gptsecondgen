@@ -133,6 +133,18 @@ async def subs_list(call: CallbackQuery, session: AsyncSession, usecases: UseCas
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 
+@callback_router.callback_query(F.data == 'extend_subs')
+async def extend_subs(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.subscription.show_extend_subs_menu(user_id=call.from_user.id, session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'rebind_payment_method')
+async def rebind_payment_method(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.subscription.rebind_payment_method(call=call, session=session)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
 @callback_router.callback_query(F.data.startswith('subs_id='))
 async def subs_id(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     subs_id = int(call.data.replace('subs_id=', ''))
