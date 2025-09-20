@@ -14,13 +14,14 @@ command_router = Router()
 @command_router.message(Command('start'))
 async def start_menu(message: types.Message, session: AsyncSession, usecases: UseCases):
     text, kb = await usecases.start_menu.run(user_id=message.from_user.id,
-                                             session=session)
+                                             session=session,
+                                             user=message.from_user)
     await message.answer(text, reply_markup=kb, parse_mode='html')
 
 
 @command_router.message(Command('select_ai'))
 async def select_ai(message: types.Message, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.select_ai.show_menu(user_id=message.from_user.id, session=session)
+    text, kbd = await usecases.select_ai.show_menu(user_id=message.from_user.id, session=session, user=message.from_user)
     try:
         await message.answer(text=text, reply_markup=kbd)
     except Exception as e:
@@ -29,13 +30,13 @@ async def select_ai(message: types.Message, session: AsyncSession, usecases: Use
 
 @command_router.message(Command('select_role'))
 async def select_role(message: types.Message, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.role.show_menu(user_id=message.from_user.id, session=session, page=0)
+    text, kbd = await usecases.role.show_menu(user_id=message.from_user.id, session=session, user=message.from_user, page=0)
     await message.answer(text=text, reply_markup=kbd)
 
 
 @command_router.message(Command('profile'))
 async def profile(message: types.Message, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.profile.run(user_id=message.from_user.id, session=session)
+    text, kbd = await usecases.profile.run(user_id=message.from_user.id, session=session, user=message.from_user)
     await message.answer(text=text, reply_markup=kbd, parse_mode='html')
 
 

@@ -4,7 +4,8 @@ from src.adapters.db.model_repository import ModelRepository
 from src.adapters.db.user_model_repository import UserModelRepository
 from src.adapters.db.user_subs_repository import UserSubsRepository
 from bot.keyboards.keyboards import Keyboard
-from config.texts import model_subs_text
+from config.i18n import get_text
+from aiogram.types import User
 
 
 class SelectAiModelUseCase:
@@ -12,7 +13,7 @@ class SelectAiModelUseCase:
         self.redis = redis
         self.keyboard = keyboard
 
-    async def show_menu(self, user_id: int, session: AsyncSession):
+    async def show_menu(self, user_id: int, session: AsyncSession, user: User):
         subtype = await UserSubsRepository.get_subs_type(user_id=user_id,
                                                          session=session,
                                                          redis=self.redis)
@@ -34,10 +35,11 @@ class SelectAiModelUseCase:
         return await self.generate_text_and_menu(description=selected_model_info.description,
                                                  models=models,
                                                  allowed=allowed,
-                                                 selected=selected)
+                                                 selected=selected,
+                                                 user=user)
 
 
-    async def set(self, user_id: int, model_id: int, session: AsyncSession):
+    async def set(self, user_id: int, model_id: int, session: AsyncSession, user: User):
         subtype_id = await UserSubsRepository.get_subs_type(user_id=user_id,
                                                             session=session,
                                                             redis=self.redis)
@@ -55,8 +57,8 @@ class SelectAiModelUseCase:
         if model_info.model_class_id not in allowed:
             trial_used = await UserSubsRepository.get_trial_used(user_id=user_id,
                                                                  session=session)
-            kbd = Keyboard.model_subs_keyboard(trial_used=trial_used)
-            return model_subs_text, kbd
+            kbd = Keyboard.model_subs_keyboard(trial_used=trial_used, user=user)
+            return get_text("model_subs_text", user), kbd
 
         await UserModelRepository.update_selected_model(user_id=user_id,
                                                         model_id=model_id,
@@ -67,10 +69,11 @@ class SelectAiModelUseCase:
         return await self.generate_text_and_menu(description=model_info.description,
                                                  models=models,
                                                  allowed=allowed,
-                                                 selected=model_id)
+                                                 selected=model_id,
+                                                 user=user)
 
 
-    async def generate_text_and_menu(self, description, models, allowed, selected):
+    async def generate_text_and_menu(self, description, models, allowed, selected, user: User):
         text = f'Описание выбранной модели: {description}'
         if description:
             text += '\n\nДоступные модели:'
@@ -79,5 +82,6 @@ class SelectAiModelUseCase:
 
         kbd = self.keyboard.select_ai_keyboard(ai_models_list=models,
                                                allowed_classes=allowed,
-                                               selected=selected)
+                                               selected=selected,
+                                               user=user)
         return text, kbd

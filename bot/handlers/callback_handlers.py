@@ -10,7 +10,7 @@ callback_router = Router()
 
 @callback_router.callback_query(F.data == 'select_ai')
 async def select_ai(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.select_ai.show_menu(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.select_ai.show_menu(user_id=call.from_user.id, session=session, user=call.from_user)
     try:
         await call.message.edit_text(text=text, reply_markup=kbd)
     except Exception as e:
@@ -27,7 +27,7 @@ async def set_model(call: CallbackQuery, session: AsyncSession, usecases: UseCas
         await call.answer('Модель уже выбрана')
         return
 
-    text, kbd = await usecases.select_ai.set(user_id=call.from_user.id, model_id=model_id, session=session)
+    text, kbd = await usecases.select_ai.set(user_id=call.from_user.id, model_id=model_id, session=session, user=call.from_user)
     try:
         await call.message.edit_text(text=text, reply_markup=kbd)
         await call.answer()
@@ -37,7 +37,7 @@ async def set_model(call: CallbackQuery, session: AsyncSession, usecases: UseCas
 
 @callback_router.callback_query(F.data == 'select_role')
 async def select_role(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session, page=0)
+    text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session, user=call.from_user, page=0)
     await call.message.edit_text(text=text, reply_markup=kbd)
 
 
@@ -45,7 +45,7 @@ async def select_role(call: CallbackQuery, session: AsyncSession, usecases: UseC
 async def roles_page(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     _, page_str = call.data.split(':')
     page = int(page_str)
-    text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session, page=page)
+    text, kbd = await usecases.role.show_menu(user_id=call.from_user.id, session=session, user=call.from_user, page=page)
     await call.message.edit_text(text=text, reply_markup=kbd)
 
 
@@ -55,7 +55,8 @@ async def set_role(call: CallbackQuery, session: AsyncSession, usecases: UseCase
     role_id = int(role_id)
     text, kbd = await usecases.role.set(user_id=call.from_user.id,
                                         role_id=role_id,
-                                        session=session)
+                                        session=session,
+                                        user=call.from_user)
     try:
         await call.message.edit_text(text=text, reply_markup=kbd)
     except Exception as e:
@@ -64,7 +65,7 @@ async def set_role(call: CallbackQuery, session: AsyncSession, usecases: UseCase
 
 @callback_router.callback_query(F.data == 'custom_roles')
 async def edit_roles(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.role.show_custom(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.role.show_custom(user_id=call.from_user.id, session=session, user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd)
 
 
@@ -72,7 +73,8 @@ async def edit_roles(call: CallbackQuery, session: AsyncSession, usecases: UseCa
 async def create_role(call: CallbackQuery, session:AsyncSession, usecases: UseCases, state: FSMContext):
     text, kbd = await usecases.role.start_role_creation(user_id=call.from_user.id,
                                                         session=session,
-                                                        state=state)
+                                                        state=state,
+                                                        user=call.from_user)
     await call.message.delete()
     await call.message.answer(text=text, reply_markup=kbd)
 
@@ -83,7 +85,8 @@ async def role_settings(call: CallbackQuery, session: AsyncSession, usecases: Us
     role_id = int(call.data.split('=')[1])
     text, kbd = await usecases.role.show_settings(user_id=call.from_user.id,
                                                   role_id=role_id,
-                                                  session=session)
+                                                  session=session,
+                                                  user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 
@@ -92,20 +95,22 @@ async def delete_role(call: CallbackQuery, session: AsyncSession, usecases: UseC
     role_id = int(call.data.split('=')[1])
     text, kbd = await usecases.role.delete(user_id=call.from_user.id,
                                            role_id=role_id,
-                                           session=session)
+                                           session=session,
+                                           user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd)
 
 
 @callback_router.callback_query(F.data == 'main_menu')
 async def main_menu(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     text, kbd = await usecases.start_menu.run(user_id=call.from_user.id,
-                                              session=session)
+                                              session=session,
+                                              user=call.from_user)
     await call.message.edit_text(text, reply_markup=kbd, parse_mode='html')
 
 
 @callback_router.callback_query(F.data == 'profile')
 async def profile(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.profile.run(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.profile.run(user_id=call.from_user.id, session=session, user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 

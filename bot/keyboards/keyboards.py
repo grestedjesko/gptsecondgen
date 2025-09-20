@@ -1,9 +1,10 @@
 from typing import Optional
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.db.models import AiRoles
+from config.i18n import get_text
 
 
 class Keyboard:
@@ -12,23 +13,41 @@ class Keyboard:
         self.webapp_url = webapp_url
 
 
-    def main_keyboard(self, has_subs: bool, trial_used: bool) -> InlineKeyboardMarkup:
+    def main_keyboard(self, has_subs: bool, trial_used: bool, user: User) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
 
-        builder.add(InlineKeyboardButton(text="🤖 Выбрать нейросеть", callback_data="select_ai"))
-        builder.add(InlineKeyboardButton(text="🎭 Выбрать роль", callback_data="select_role"))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_select_ai", user), 
+            callback_data="select_ai"
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_select_role", user), 
+            callback_data="select_role"
+        ))
 
         if not has_subs:
             if trial_used:
-                builder.add(InlineKeyboardButton(text='🔥 Купить подписку', callback_data="subs"))
+                builder.add(InlineKeyboardButton(
+                    text=get_text("btn_buy_subs", user), 
+                    callback_data="subs"
+                ))
             else:
-                builder.add(InlineKeyboardButton(text='🔥 3 дня за 1 рубль',  callback_data="start_trial"))
+                builder.add(InlineKeyboardButton(
+                    text=get_text("btn_trial_3_days", user), 
+                    callback_data="start_trial"
+                ))
 
         builder.adjust(1)
         # Эти две кнопки будут в одной строке
         builder.row(
-            InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
-            InlineKeyboardButton(text="Тех. поддержка", url=self.support_link)
+            InlineKeyboardButton(
+                text=get_text("btn_profile", user), 
+                callback_data="profile"
+            ),
+            InlineKeyboardButton(
+                text=get_text("btn_support", user), 
+                url=self.support_link
+            )
         )
 
         return builder.as_markup()
@@ -38,7 +57,8 @@ class Keyboard:
     def select_ai_keyboard(
         ai_models_list: list[tuple[int, str, str]],
         allowed_classes: list[str],
-        selected: int
+        selected: int,
+        user: User
     ) -> InlineKeyboardMarkup:
         """
         ai_models_list: [(id, name, ai_class), ...]
@@ -55,12 +75,15 @@ class Keyboard:
                 btn_text = f"🔒 {name}"
             builder.add(InlineKeyboardButton(text=btn_text, callback_data=f"set_model:{mid}"))
 
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='main_menu'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='main_menu'
+        ))
         builder.adjust(1, 2, 1, 2, 2, 2, 1)
         return builder.as_markup()
 
     @staticmethod
-    def role_keyboard(user_id: int, roles_list: list, selected_role_id: int, subtype: int, page: int = 0, per_page: int = 5):
+    def role_keyboard(user_id: int, roles_list: list, selected_role_id: int, subtype: int, user: User, page: int = 0, per_page: int = 5):
         builder = InlineKeyboardBuilder()
         has_custom_roles = False
 
@@ -97,12 +120,12 @@ class Keyboard:
                 )
             )
         if has_custom_roles:
-            create_text = 'Редактировать роли'
+            create_text = get_text("btn_edit_roles", user)
             create_cb = 'custom_roles'
             if subtype == 0:
                 create_text = f'✏️ {create_text}'
         else:
-            create_text = 'Создать роль'
+            create_text = get_text("btn_create_role", user)
             create_cb = 'create_role'
             if subtype == 0:
                 create_text = f'➕ {create_text}'
@@ -130,97 +153,160 @@ class Keyboard:
                 next_btn,
             )
 
-        builder.row(InlineKeyboardButton(text='Назад', callback_data='main_menu'))
+        builder.row(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='main_menu'
+        ))
         return builder.as_markup()
 
     @staticmethod
-    def custom_role_keyboard(roles: Optional[list[AiRoles]]):
+    def custom_role_keyboard(roles: Optional[list[AiRoles]], user: User):
         builder = InlineKeyboardBuilder()
         for role in roles:
             builder.add(InlineKeyboardButton(text=role.name, callback_data=f'settings_role_id={role.id}'))
 
         if len(roles) < 5:
-            builder.add(InlineKeyboardButton(text='Создать роль', callback_data='create_role'))
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='select_role'))
+            builder.add(InlineKeyboardButton(
+                text=get_text("btn_create_role", user), 
+                callback_data='create_role'
+            ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='select_role'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def role_settings_keyboard(role_id: int):
+    def role_settings_keyboard(role_id: int, user: User):
         builder = InlineKeyboardBuilder()
-        builder.add(InlineKeyboardButton(text='Удалить роль', callback_data=f'delete_role_id={role_id}'))
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='custom_roles'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_delete_role", user), 
+            callback_data=f'delete_role_id={role_id}'
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='custom_roles'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def role_subs_keyboard(trial_used: bool):
+    def role_subs_keyboard(trial_used: bool, user: User):
         builder = InlineKeyboardBuilder()
         if trial_used:
-            builder.add(InlineKeyboardButton(text='🔥 Купить подписку', callback_data='subs'))
+            builder.add(InlineKeyboardButton(
+                text=get_text("btn_buy_subs", user), 
+                callback_data='subs'
+            ))
         else:
-            builder.add(InlineKeyboardButton(text='🔥 3 дня за 1 рубль', callback_data='start_trial'))
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='select_role'))
+            builder.add(InlineKeyboardButton(
+                text=get_text("btn_trial_3_days", user), 
+                callback_data='start_trial'
+            ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='select_role'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def model_subs_keyboard(trial_used: bool):
+    def model_subs_keyboard(trial_used: bool, user: User):
         builder = InlineKeyboardBuilder()
         if trial_used:
-            builder.add(InlineKeyboardButton(text='🔥 Купить подписку', callback_data='subs'))
+            builder.add(InlineKeyboardButton(
+                text=get_text("btn_buy_subs", user), 
+                callback_data='subs'
+            ))
         else:
-            builder.add(InlineKeyboardButton(text='🔥 3 дня за 1 рубль', callback_data='start_trial'))
-        builder.add(InlineKeyboardButton(text='Главное меню', callback_data='main_menu'))
+            builder.add(InlineKeyboardButton(
+                text=get_text("btn_trial_3_days", user), 
+                callback_data='start_trial'
+            ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_main_menu", user), 
+            callback_data='main_menu'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def profile_menu(has_subs: bool, trial_used: bool):
+    def profile_menu(has_subs: bool, trial_used: bool, user: User):
         builder = InlineKeyboardBuilder()
         if has_subs:
-            builder.add(InlineKeyboardButton(text='⚙️ Управление подпиской', callback_data='settings_subs'))
+            builder.add(InlineKeyboardButton(
+                text=get_text("btn_settings_subs", user), 
+                callback_data='settings_subs'
+            ))
         else:
             if trial_used:
-                builder.add(InlineKeyboardButton(text='🔥 Купить подписку', callback_data='subs'))
+                builder.add(InlineKeyboardButton(
+                    text=get_text("btn_buy_subs", user), 
+                    callback_data='subs'
+                ))
             else:
-                builder.add(InlineKeyboardButton(text='🔥 3 дня за 1 рубль', callback_data='start_trial'))
+                builder.add(InlineKeyboardButton(
+                    text=get_text("btn_trial_3_days", user), 
+                    callback_data='start_trial'
+                ))
 
         #builder.add(InlineKeyboardButton(text='💰️ Купить запросы', callback_data='buy_tokens'))
-        builder.add(InlineKeyboardButton(text='🆓 Бесплатные запросы', callback_data='free_tokens'))
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='main_menu'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_free_tokens", user), 
+            callback_data='free_tokens'
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='main_menu'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def subscribe_keyboard(packets: list):
+    def subscribe_keyboard(packets: list, user: User):
         builder = InlineKeyboardBuilder()
         for packet in packets:
             text = f"{packet.name} — {packet.price}₽ "
             builder.add(InlineKeyboardButton(text=text, callback_data=f'buy_subs_id:{packet.id}'))
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='main_menu'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='main_menu'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def subs_settings_keyboard(will_renew: bool):
+    def subs_settings_keyboard(will_renew: bool, user: User):
         builder = InlineKeyboardBuilder()
         if will_renew:
-            builder.add(InlineKeyboardButton(text='⏹ Отключить автопродление', callback_data='subs_stop_renew'))
+            builder.add(InlineKeyboardButton(
+                text=get_text("btn_stop_renew", user), 
+                callback_data='subs_stop_renew'
+            ))
         else:
-            builder.add(InlineKeyboardButton(text='🔄 Включить автопродление', callback_data='rebind_payment_method'))
+            builder.add(InlineKeyboardButton(
+                text=get_text("btn_start_renew", user), 
+                callback_data='rebind_payment_method'
+            ))
         
-        builder.add(InlineKeyboardButton(text='🔥 Продлить подписку', callback_data='extend_subs'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_extend_subs", user), 
+            callback_data='extend_subs'
+        ))
         
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='profile'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='profile'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def cancel_keyboard():
+    def cancel_keyboard(user: User):
         return ReplyKeyboardMarkup(
             keyboard=[
-                [KeyboardButton(text="❌ Отмена")]
+                [KeyboardButton(text=get_text("btn_cancel", user))]
             ],
             resize_keyboard=True,
             one_time_keyboard=True
@@ -231,39 +317,64 @@ class Keyboard:
                          stars_amount: int,
                          payment_link: str,
                          invoice_link: str,
-                         oferta_link: str) -> InlineKeyboardMarkup:
+                         oferta_link: str,
+                         user: User) -> InlineKeyboardMarkup:
         return InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text=f"TG Stars | {stars_amount} ⭐", url=invoice_link)],
-                [InlineKeyboardButton(text=f"Картой | СБП | {amount}₽", url=payment_link)],
-                [InlineKeyboardButton(text="Оферта", url=oferta_link)],
-                [InlineKeyboardButton(text="Назад", callback_data="subs_list")],
+                [InlineKeyboardButton(
+                    text=get_text("btn_pay_stars", user, stars=stars_amount), 
+                    url=invoice_link
+                )],
+                [InlineKeyboardButton(
+                    text=get_text("btn_pay_card", user, amount=amount), 
+                    url=payment_link
+                )],
+                [InlineKeyboardButton(
+                    text=get_text("btn_oferta", user), 
+                    url=oferta_link
+                )],
+                [InlineKeyboardButton(
+                    text=get_text("btn_back", user), 
+                    callback_data="subs_list"
+                )],
             ]
         )
 
     @staticmethod
-    def subs_keyboard(available_subs: list):
+    def subs_keyboard(available_subs: list, user: User):
         builder = InlineKeyboardBuilder()
         for sub in available_subs:
             builder.add(InlineKeyboardButton(text=sub.name, callback_data=f'subs_id={sub.id}'))
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='main_menu'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='main_menu'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def subs_extend_keyboard(available_subs: list):
+    def subs_extend_keyboard(available_subs: list, user: User):
         builder = InlineKeyboardBuilder()
         for sub in available_subs:
             builder.add(InlineKeyboardButton(text=sub.name, callback_data=f'subs_id={sub.id}'))
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='profile'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='profile'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 
     @staticmethod
-    def payment_rebind_keyboard(link: str):
+    def payment_rebind_keyboard(link: str, user: User):
         builder = InlineKeyboardBuilder()
-        builder.add(InlineKeyboardButton(text='💳 Оплатить 1 рубль', url=link))
-        builder.add(InlineKeyboardButton(text='Назад', callback_data='settings_subs'))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_pay_1_rub", user), 
+            url=link
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='settings_subs'
+        ))
         builder.adjust(1)
         return builder.as_markup()
 

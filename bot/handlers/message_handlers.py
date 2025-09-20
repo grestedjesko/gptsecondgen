@@ -40,6 +40,7 @@ async def handle_text(message: Message, bot: Bot, session: AsyncSession, usecase
     except Exception as e:
         print(e)
 
+
 @message_router.message(F.document)
 async def handle_document(message: Message, bot: Bot, session: AsyncSession, usecases: UseCases):
     sended_message = await message.answer(text="🕓 Подождите немного, сейчас все будет готово")

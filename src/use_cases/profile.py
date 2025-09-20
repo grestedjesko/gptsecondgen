@@ -8,10 +8,9 @@ from src.services.utils import get_week_start_date, get_new_week_start_date
 from datetime import datetime
 from src.adapters.cache.redis_cache import RedisCache
 from collections import defaultdict
-from config.texts import (default_limit_text,
-                          profile_text_no_subs,
-                          profile_text_subs)
+from config.i18n import get_text
 from datetime import timedelta
+from aiogram.types import User
 
 class ProfileUseCase:
     def __init__(self, redis: RedisCache, config: Settings, keyboard: Keyboard):
@@ -19,7 +18,7 @@ class ProfileUseCase:
         self.config = config
         self.keyboard = keyboard
 
-    async def run(self, user_id: int, session: AsyncSession):
+    async def run(self, user_id: int, session: AsyncSession, user: User):
         user_subs = await UserSubsRepository.get_subs_by_user_id(user_id=user_id, session=session)
         if user_subs:
             subtype_id = user_subs.type
@@ -63,25 +62,25 @@ class ProfileUseCase:
                 "remaining_questions": remaining_questions,
             }
 
-        limit_text = await self.build_limit_text(profile_limits=result)
+        limit_text = await self.build_limit_text(profile_limits=result, user=user)
 
 
         if subtype_id == 0:
             generation_renew_date = await get_new_week_start_date()
-            text = profile_text_no_subs % (limit_text, generation_renew_date)
+            text = get_text("profile_text_no_subs", user, limit_text=limit_text, generation_renew_date=generation_renew_date)
         else:
             generation_renew_date = datetime.today().date() + timedelta(days=1)
             generation_renew_date = datetime.strftime(generation_renew_date, "%d.%m.%Y 00:00")
             renewal_status = 'Активировано' if user_subs.will_renew else 'Не активировано ❌'
             period_end = datetime.strftime(user_subs.period_end, '%d.%m.%Y %H:%M')
-            text = profile_text_subs % (limit_text, generation_renew_date, period_end, renewal_status)
+            text = get_text("profile_text_subs", user, limit_text=limit_text, generation_renew_date=generation_renew_date, period_end=period_end, renewal_status=renewal_status)
 
         trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
-        kbd = self.keyboard.profile_menu(has_subs=bool(subtype_id), trial_used=trial_used)
+        kbd = self.keyboard.profile_menu(has_subs=bool(subtype_id), trial_used=trial_used, user=user)
         return text, kbd
 
 
-    async def build_limit_text(self, profile_limits) -> str:
+    async def build_limit_text(self, profile_limits, user: User) -> str:
         light_remaining = profile_limits.get(self.config.light_class_id, {}).get("remaining_questions", 0)
         normal_remaining = profile_limits.get(self.config.normal_class_id, {}).get("remaining_questions", 0)
         smart_remaining = profile_limits.get(self.config.smart_class_id, {}).get("remaining_questions", 0)
@@ -89,10 +88,10 @@ class ProfileUseCase:
         mj_remaining = profile_limits.get(self.config.midjourney_class_id, {}).get("remaining_questions", 0)
 
         # Формируем текст
-        return default_limit_text % (
-            light_remaining,
-            normal_remaining,
-            smart_remaining,
-            dalle_remaining,
-            mj_remaining
+        return get_text("default_limit_text", user, 
+            light_remaining=light_remaining,
+            normal_remaining=normal_remaining,
+            smart_remaining=smart_remaining,
+            dalle_remaining=dalle_remaining,
+            mj_remaining=mj_remaining
         )

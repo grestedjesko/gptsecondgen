@@ -6,14 +6,16 @@ from src.use_cases.usecases import UseCases
 from aiogram.utils.chat_action import ChatActionSender
 from aiogram.filters import StateFilter
 from bot.states import RoleCreation
+from config.i18n import get_text
 
 role_router = Router()
 
-@role_router.message(F.text == '❌ Отмена')
+@role_router.message(F.text.in_({'❌ Отмена', '❌ Cancel'}))
 async def cancel_text(message: Message, state: FSMContext, usecases: UseCases, session: AsyncSession):
     await state.clear()
     text, kb = await usecases.start_menu.run(user_id=message.from_user.id,
-                                             session=session)
+                                             session=session,
+                                             user=message.from_user)
     await message.answer(text, reply_markup=kb, parse_mode='html')
 
 
@@ -22,14 +24,16 @@ async def set_role_title(message: Message, session: AsyncSession, usecases: UseC
     text = await usecases.role.set_role_name(user_id=message.from_user.id,
                                              session=session,
                                              state=state,
-                                             title=message.text)
+                                             title=message.text,
+                                             user=message.from_user)
     await message.answer(text)
 
 
 @role_router.message(StateFilter(RoleCreation.waiting_for_description))
 async def set_role_description(message: Message, usecases: UseCases, state: FSMContext):
     text = await usecases.role.set_role_description(state=state,
-                                                    description=message.text)
+                                                    description=message.text,
+                                                    user=message.from_user)
     await message.answer(text)
 
 
@@ -38,6 +42,7 @@ async def set_role_prompt(message: Message, session: AsyncSession, usecases: Use
     text, kbd = await usecases.role.set_role_prompt(user_id=message.from_user.id,
                                                     session=session,
                                                     state=state,
-                                                    prompt=message.text)
+                                                    prompt=message.text,
+                                                    user=message.from_user)
     await message.answer(text, reply_markup=kbd)
 

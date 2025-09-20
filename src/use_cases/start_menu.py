@@ -4,11 +4,11 @@ from src.adapters.cache.redis_cache import RedisCache
 from src.adapters.db.user_model_repository import UserModelRepository
 from src.adapters.db.user_subs_repository import UserSubsRepository
 from typing import Tuple
-from aiogram.types import  InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, User
 from app.config import Settings
 from bot.keyboards.keyboards import Keyboard
 from src.adapters.db.model_repository import ModelRepository
-from config.texts import nosubs_text, nosubs_trial_text, subs_text
+from config.i18n import get_text
 
 
 class StartMenuUseCase:
@@ -17,7 +17,7 @@ class StartMenuUseCase:
         self.keyboard = keyboard
         self.redis = redis
 
-    async def run(self, user_id: int, session: AsyncSession) -> Tuple[str, InlineKeyboardMarkup]:
+    async def run(self, user_id: int, session: AsyncSession, user: User) -> Tuple[str, InlineKeyboardMarkup]:
         """
         Возвращает текст и клавиатуру в зависимости от подписки пользователя.
         """
@@ -25,9 +25,10 @@ class StartMenuUseCase:
         subtype_id = await UserSubsRepository.get_subs_type(user_id=user_id, session=session, redis=self.redis)
 
         if subtype_id == 0:
-            text = nosubs_text if trial_used else nosubs_trial_text
+            text_key = "nosubs_text" if trial_used else "nosubs_trial_text"
+            text = get_text(text_key, user)
         else:
             model_id = await UserModelRepository.get_selected_model_id(user_id=user_id, session=session)
             model = await ModelRepository.get_model_info(model_id=model_id, session=session, redis=self.redis)
-            text = subs_text % model.name
-        return text, self.keyboard.main_keyboard(has_subs=bool(subtype_id), trial_used=trial_used)
+            text = get_text("subs_text", user, model_name=model.name)
+        return text, self.keyboard.main_keyboard(has_subs=bool(subtype_id), trial_used=trial_used, user=user)
