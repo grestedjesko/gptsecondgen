@@ -2,6 +2,18 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import or_
 from app.db.models import UserRoles, AiRoles
+from config.i18n import get_localized_role_name, get_localized_role_description
+from aiogram.types import User
+from dataclasses import dataclass
+
+
+@dataclass
+class RoleInfo:
+    """Информация о роли для использования в use cases"""
+    id: int
+    name: str
+    user_id: int
+    free_available: bool
 
 
 class RoleRepository:
@@ -24,6 +36,43 @@ class RoleRepository:
         return result.fetchall()
 
     @staticmethod
+    async def get_roles_localized(session: AsyncSession, user: User, user_id: int = None, include_defaults: bool = False):
+        """
+        Возвращает роли с локализованными названиями в формате кортежей для совместимости
+        """
+        # Получаем оригинальные роли
+        roles = await RoleRepository.get_roles(session, user_id, include_defaults)
+        
+        # Локализуем названия
+        localized_roles = []
+        for role_id, original_name, role_user_id, free_available in roles:
+            localized_name = get_localized_role_name(original_name, user)
+            localized_roles.append((role_id, localized_name, role_user_id, free_available))
+        
+        return localized_roles
+
+    @staticmethod
+    async def get_roles_objects_localized(session: AsyncSession, user: User, user_id: int = None, include_defaults: bool = False):
+        """
+        Возвращает роли с локализованными названиями в формате объектов для use cases
+        """
+        # Получаем оригинальные роли
+        roles = await RoleRepository.get_roles(session, user_id, include_defaults)
+        
+        # Локализуем названия и создаем объекты RoleInfo
+        localized_roles = []
+        for role_id, original_name, role_user_id, free_available in roles:
+            localized_name = get_localized_role_name(original_name, user)
+            localized_roles.append(RoleInfo(
+                id=role_id,
+                name=localized_name,
+                user_id=role_user_id,
+                free_available=free_available
+            ))
+        
+        return localized_roles
+
+    @staticmethod
     async def get_selected_role_id(user_id: int, session: AsyncSession) -> int | None:
         query = sa.select(UserRoles.role_id).where(UserRoles.user_id == user_id)
         result = await session.execute(query)
@@ -36,6 +85,23 @@ class RoleRepository:
             sa.select(AiRoles.description).where(AiRoles.id == role_id)
         )
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_role_description_localized(role_id: int, session: AsyncSession, user: User) -> str | None:
+        """
+        Получает локализованное описание роли
+        """
+        # Сначала получаем название роли
+        result = await session.execute(
+            sa.select(AiRoles.name).where(AiRoles.id == role_id)
+        )
+        role_name = result.scalar_one_or_none()
+        
+        if not role_name:
+            return None
+            
+        # Возвращаем локализованное описание
+        return get_localized_role_description(role_name, user)
 
     @staticmethod
     async def get_role_prompt(role_id: int, session: AsyncSession) -> str | None:

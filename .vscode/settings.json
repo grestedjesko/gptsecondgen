@@ -1,0 +1,8 @@
+{
+    "files.exclude": {
+      "**/__pycache__/": true,   // скрыть папки в проводнике
+      "**/*.pyc": true
+    },
+    "explorer.excludeGitIgnore": false
+  }
+  

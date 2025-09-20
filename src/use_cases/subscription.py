@@ -1,4 +1,4 @@
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, User
 from aiogram.types import LabeledPrice
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +9,7 @@ from src.adapters.cache.redis_cache import RedisCache
 from src.adapters.payments.yookassa_api import YookassaAPI
 from app.db.models.invoice import InvoiceReason, InvoiceStatus
 from app.db.models.payments import PaymentProvider, PaymentStatus
-from config.texts import subscribe_trial_text, base_subs_text, subscribe_text
+from config.i18n import get_text
 from bot.keyboards.keyboards import Keyboard
 from src.adapters.db.user_subs_repository import UserSubsRepository
 from src.adapters.db.user_payment_methods_repository import UserPaymentMethodsRepository
@@ -22,46 +22,46 @@ class SubscriptionUseCase:
         self.keyboard = keyboard
         self.yookassa = yookassa
 
-    async def show_subs_menu(self, user_id: int, session: AsyncSession):
-        text = base_subs_text
+    async def show_subs_menu(self, user_id: int, session: AsyncSession, user: User):
+        text = get_text("base_subs_text", user)
         trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
 
         available_subs = []
 
-        all_subs = await SubsRepository.get_all_subs(session=session, redis=self.redis)
+        all_subs = await SubsRepository.get_all_subs_localized(session=session, redis=self.redis, user=user)
         for sub in all_subs:
             if sub.id == 1 and trial_used:
                 continue
             available_subs.append(sub)
 
-        keyboard = Keyboard.subs_keyboard(available_subs=available_subs)
+        keyboard = Keyboard.subs_keyboard(available_subs=available_subs, user=user)
 
         return text, keyboard
 
-    async def show_extend_subs_menu(self, user_id: int, session: AsyncSession):
-        text = base_subs_text
+    async def show_extend_subs_menu(self, user_id: int, session: AsyncSession, user: User):
+        text = get_text("base_subs_text", user)
         trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
 
         available_subs = []
 
-        all_subs = await SubsRepository.get_all_subs(session=session, redis=self.redis)
+        all_subs = await SubsRepository.get_all_subs_localized(session=session, redis=self.redis, user=user)
         for sub in all_subs:
             if sub.id == 1 and trial_used:
                 continue
             available_subs.append(sub)
 
-        keyboard = Keyboard.subs_extend_keyboard(available_subs=available_subs)
+        keyboard = Keyboard.subs_extend_keyboard(available_subs=available_subs, user=user)
 
         return text, keyboard
 
-    async def show_settings(self, user_id: int, session: AsyncSession):
+    async def show_settings(self, user_id: int, session: AsyncSession, user: User):
         subs = await UserSubsRepository.get_subs_by_user_id(user_id=user_id, session=session)
         will_renew = bool(subs and subs.will_renew)
-        text = "Управление подпиской"
-        kbd = Keyboard.subs_settings_keyboard(will_renew=will_renew)
+        text = get_text("btn_settings_subs", user)
+        kbd = Keyboard.subs_settings_keyboard(will_renew=will_renew, user=user)
         return text, kbd
 
-    async def stop_renew(self, user_id: int, session: AsyncSession):
+    async def stop_renew(self, user_id: int, session: AsyncSession, user: User):
         # Получаем активную подписку пользователя
         user_subs = await UserSubsRepository.get_subs_by_user_id(user_id=user_id, session=session)
         
@@ -78,21 +78,22 @@ class SubscriptionUseCase:
             )
         
         await session.commit()
-        return await self.show_settings(user_id=user_id, session=session)
+        return await self.show_settings(user_id=user_id, session=session, user=user)
 
-    async def enable_renew(self, user_id: int, session: AsyncSession):
+    async def enable_renew(self, user_id: int, session: AsyncSession, user: User):
         await UserSubsRepository.set_will_renew(user_id=user_id, will_renew=True, session=session)
         await session.commit()
-        return await self.show_settings(user_id=user_id, session=session)
+        return await self.show_settings(user_id=user_id, session=session, user=user)
 
     async def rebind_payment_method(self, call: CallbackQuery, session: AsyncSession):
         """Создает счет на 1 рубль для перепривязки способа оплаты"""
         user_id = call.from_user.id
+        user = call.from_user
         
         # Получаем активную подписку пользователя
         user_subs = await UserSubsRepository.get_subs_by_user_id(user_id=user_id, session=session)
         if not user_subs:
-            return "У вас нет активной подписки", self.keyboard.subs_settings_keyboard(will_renew=False)
+            return get_text("no_active_subscription", user), self.keyboard.subs_settings_keyboard(will_renew=False, user=user)
         
         # Создаем счет на 1 рубль для перепривязки
         invoice = await InvoiceRepository.create(
@@ -126,9 +127,9 @@ class SubscriptionUseCase:
         )
         print(f'Created payment record: id={payment_id}')
         
-        text = "🔄 Возобновление подписки\n\nДля возобновления подписки необходимо оплатить 1 рубль. После успешной оплаты подписка будет возобновлена с новым способом оплаты."
+        text = get_text("payment_rebind_text", user)
         
-        kbd = self.keyboard.payment_rebind_keyboard(link=link)
+        kbd = self.keyboard.payment_rebind_keyboard(link=link, user=user)
         return text, kbd
 
     async def generate_payment(self, call: CallbackQuery, subs_id: int, session: AsyncSession):

@@ -245,6 +245,40 @@ P.S. — с подпиской я реально гораздо круче 😎"
         "btn_pay_stars": "TG Stars | {stars} ⭐",
         "btn_oferta": "Оферта",
         "btn_pay_1_rub": "💳 Оплатить 1 рубль",
+        "renewal_activated": "Активировано",
+        "renewal_not_activated": "Не активировано ❌",
+        "no_active_subscription": "У вас нет активной подписки",
+        "payment_rebind_text": "🔄 Возобновление подписки\n\nДля возобновления подписки необходимо оплатить 1 рубль. После успешной оплаты подписка будет возобновлена с новым способом оплаты.",
+        
+        # AI Models
+        "model_auto": "Автоопределение модели",
+        "model_gpt5_nano": "GPT-5 nano",
+        "model_chatgpt41": "ChatGPT 4.1",
+        "model_deepseek_v3": "DeepSeek V3",
+        "model_o4_mini": "o4 mini",
+        "model_perplexity": "Perplexity",
+        "model_claude37": "Claude 3.7",
+        "model_gemini25": "Gemini 2.5 Pro",
+        "model_dalle3": "DALL•E 3",
+        "model_midjourney": "Midjourney",
+        
+        # AI Model Selection
+        "selected_model_description": "Описание выбранной модели: {description}\n\nДоступные модели:",
+        "available_models": "Доступные модели:",
+        
+        # AI Roles
+        "role_default": "Обычный",
+        "role_lawyer": "Юрист",
+        
+        # AI Role Descriptions
+        "role_default_description": "Эта роль бота призвана помогать вам в самых общих и разнообразных вопросах. Если у вас нет конкретного запроса, начните с этой роли. Она предоставит вам информацию и ответы на широкий спектр тем.",
+        "role_lawyer_description": "Роль юриста",
+        
+        # Subscription Plans
+        "sub_weekly": "Недельная",
+        "sub_monthly": "Месячная", 
+        "sub_yearly": "Годовая",
+        "sub_trial": "5 дней за 1 рубль",
     },
     
     Language.EN: {
@@ -476,6 +510,40 @@ By clicking "Pay", you agree to the Rules for accepting recurring payments. You 
         "btn_pay_stars": "TG Stars | {stars} ⭐",
         "btn_oferta": "Terms",
         "btn_pay_1_rub": "💳 Pay 1 ruble",
+        "renewal_activated": "Activated",
+        "renewal_not_activated": "Not activated ❌",
+        "no_active_subscription": "You don't have an active subscription",
+        "payment_rebind_text": "🔄 Subscription Renewal\n\nTo renew your subscription, you need to pay 1 ruble. After successful payment, the subscription will be renewed with a new payment method.",
+        
+        # AI Models
+        "model_auto": "Auto Model Selection",
+        "model_gpt5_nano": "GPT-5 nano",
+        "model_chatgpt41": "ChatGPT 4.1",
+        "model_deepseek_v3": "DeepSeek V3",
+        "model_o4_mini": "o4 mini",
+        "model_perplexity": "Perplexity",
+        "model_claude37": "Claude 3.7",
+        "model_gemini25": "Gemini 2.5 Pro",
+        "model_dalle3": "DALL•E 3",
+        "model_midjourney": "Midjourney",
+        
+        # AI Model Selection
+        "selected_model_description": "Selected model description: {description}\n\nAvailable models:",
+        "available_models": "Available models:",
+        
+        # AI Roles
+        "role_default": "Default",
+        "role_lawyer": "Lawyer",
+        
+        # AI Role Descriptions
+        "role_default_description": "This bot role is designed to help you with the most general and diverse questions. If you don't have a specific request, start with this role. It will provide you with information and answers on a wide range of topics.",
+        "role_lawyer_description": "Lawyer role",
+        
+        # Subscription Plans
+        "sub_weekly": "Weekly",
+        "sub_monthly": "Monthly",
+        "sub_yearly": "Yearly", 
+        "sub_trial": "5 days for 1 ruble",
     }
 }
 
@@ -533,6 +601,116 @@ def get_text(key: str, user: User, **kwargs) -> str:
             pass
     
     return text
+
+
+def get_localized_model_name(model_name: str, user: User) -> str:
+    """
+    Получает локализованное название модели AI
+    
+    Args:
+        model_name: Оригинальное название модели из базы данных
+        user: Объект пользователя Telegram
+    
+    Returns:
+        Локализованное название модели
+    """
+    # Маппинг оригинальных названий на ключи локализации
+    model_mapping = {
+        "Автоопределение модели": "model_auto",
+        "GPT-5 nano": "model_gpt5_nano",
+        "ChatGPT 4.1": "model_chatgpt41",
+        "DeepSeek V3": "model_deepseek_v3",
+        "o4 mini": "model_o4_mini",
+        "Perplexity": "model_perplexity",
+        "Claude 3.7": "model_claude37",
+        "Gemini 2.5 Pro": "model_gemini25",
+        "DALL•E 3": "model_dalle3",
+        "Midjourney": "model_midjourney",
+    }
+    
+    # Если есть маппинг, возвращаем локализованное название
+    if model_name in model_mapping:
+        return get_text(model_mapping[model_name], user)
+    
+    # Если маппинга нет, возвращаем оригинальное название
+    return model_name
+
+
+def get_localized_role_name(role_name: str, user: User) -> str:
+    """
+    Получает локализованное название роли AI
+    
+    Args:
+        role_name: Оригинальное название роли из базы данных
+        user: Объект пользователя Telegram
+    
+    Returns:
+        Локализованное название роли
+    """
+    # Маппинг оригинальных названий на ключи локализации
+    role_mapping = {
+        "Обычный": "role_default",
+        "Юрист": "role_lawyer",
+    }
+    
+    # Если есть маппинг, возвращаем локализованное название
+    if role_name in role_mapping:
+        return get_text(role_mapping[role_name], user)
+    
+    # Если маппинга нет, возвращаем оригинальное название
+    return role_name
+
+
+def get_localized_role_description(role_name: str, user: User) -> str:
+    """
+    Получает локализованное описание роли AI
+    
+    Args:
+        role_name: Оригинальное название роли из базы данных
+        user: Объект пользователя Telegram
+    
+    Returns:
+        Локализованное описание роли
+    """
+    # Маппинг оригинальных названий на ключи локализации описаний
+    role_description_mapping = {
+        "Обычный": "role_default_description",
+        "Юрист": "role_lawyer_description",
+    }
+    
+    # Если есть маппинг, возвращаем локализованное описание
+    if role_name in role_description_mapping:
+        return get_text(role_description_mapping[role_name], user)
+    
+    # Если маппинга нет, возвращаем оригинальное описание
+    return role_name
+
+
+def get_localized_subscription_name(sub_name: str, user: User) -> str:
+    """
+    Получает локализованное название тарифа подписки
+    
+    Args:
+        sub_name: Оригинальное название тарифа из базы данных
+        user: Объект пользователя Telegram
+    
+    Returns:
+        Локализованное название тарифа
+    """
+    # Маппинг оригинальных названий на ключи локализации
+    sub_mapping = {
+        "Недельная": "sub_weekly",
+        "Месячная": "sub_monthly",
+        "Годовая": "sub_yearly",
+        "5 дней за 1 рубль": "sub_trial",
+    }
+    
+    # Если есть маппинг, возвращаем локализованное название
+    if sub_name in sub_mapping:
+        return get_text(sub_mapping[sub_name], user)
+    
+    # Если маппинга нет, возвращаем оригинальное название
+    return sub_name
 
 
 def get_text_by_language(key: str, language: Language, **kwargs) -> str:

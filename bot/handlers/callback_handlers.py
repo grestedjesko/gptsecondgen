@@ -116,31 +116,31 @@ async def profile(call: CallbackQuery, session: AsyncSession, usecases: UseCases
 
 @callback_router.callback_query(F.data == 'settings_subs')
 async def settings_subs(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.subscription.show_settings(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.subscription.show_settings(user_id=call.from_user.id, session=session, user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 
 @callback_router.callback_query(F.data == 'subs_stop_renew')
 async def subs_stop_renew(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.subscription.stop_renew(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.subscription.stop_renew(user_id=call.from_user.id, session=session, user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 
 @callback_router.callback_query(F.data == 'subs_extend')
 async def subs_extend(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.subscription.enable_renew(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.subscription.enable_renew(user_id=call.from_user.id, session=session, user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 
 @callback_router.callback_query(F.data == 'subs_list')
 async def subs_list(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.subscription.show_subs_menu(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.subscription.show_subs_menu(user_id=call.from_user.id, session=session, user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 
 @callback_router.callback_query(F.data == 'extend_subs')
 async def extend_subs(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.subscription.show_extend_subs_menu(user_id=call.from_user.id, session=session)
+    text, kbd = await usecases.subscription.show_extend_subs_menu(user_id=call.from_user.id, session=session, user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 

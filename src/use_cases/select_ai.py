@@ -18,7 +18,7 @@ class SelectAiModelUseCase:
                                                          session=session,
                                                          redis=self.redis)
 
-        models = await ModelRepository.get_all_models(session=session, redis=self.redis)
+        models = await ModelRepository.get_all_models_localized(session=session, redis=self.redis, user=user)
 
         allowed = await ModelRepository.get_allowed_classes(subtype_id=subtype,
                                                             session=session,
@@ -64,7 +64,7 @@ class SelectAiModelUseCase:
                                                         model_id=model_id,
                                                         session=session)
 
-        models = await ModelRepository.get_all_models(session=session, redis=self.redis)
+        models = await ModelRepository.get_all_models_localized(session=session, redis=self.redis, user=user)
 
         return await self.generate_text_and_menu(description=model_info.description,
                                                  models=models,
@@ -74,11 +74,10 @@ class SelectAiModelUseCase:
 
 
     async def generate_text_and_menu(self, description, models, allowed, selected, user: User):
-        text = f'Описание выбранной модели: {description}'
         if description:
-            text += '\n\nДоступные модели:'
+            text = get_text("selected_model_description", user, description=description)
         else:
-            text = 'Доступные модели:'
+            text = get_text("available_models", user)
 
         kbd = self.keyboard.select_ai_keyboard(ai_models_list=models,
                                                allowed_classes=allowed,

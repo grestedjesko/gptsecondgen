@@ -71,7 +71,7 @@ class ProfileUseCase:
         else:
             generation_renew_date = datetime.today().date() + timedelta(days=1)
             generation_renew_date = datetime.strftime(generation_renew_date, "%d.%m.%Y 00:00")
-            renewal_status = 'Активировано' if user_subs.will_renew else 'Не активировано ❌'
+            renewal_status = get_text("renewal_activated", user) if user_subs.will_renew else get_text("renewal_not_activated", user)
             period_end = datetime.strftime(user_subs.period_end, '%d.%m.%Y %H:%M')
             text = get_text("profile_text_subs", user, limit_text=limit_text, generation_renew_date=generation_renew_date, period_end=period_end, renewal_status=renewal_status)
 

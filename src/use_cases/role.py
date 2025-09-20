@@ -36,9 +36,9 @@ class RoleUseCase:
                                                          session=session,
                                                          redis=self.redis)
 
-        roles = await RoleRepository.get_roles(user_id=user_id, include_defaults=True, session=session)
+        roles = await RoleRepository.get_roles_localized(user_id=user_id, include_defaults=True, session=session, user=user)
         selected = await RoleRepository.get_selected_role_id(user_id=user_id, session=session)
-        description = await RoleRepository.get_role_description(role_id=selected, session=session)
+        description = await RoleRepository.get_role_description_localized(role_id=selected, session=session, user=user)
 
         text = get_text("select_role_text", user, description=description)
         kbd = self.keyboard.role_keyboard(user_id=user_id,
@@ -51,10 +51,13 @@ class RoleUseCase:
                                                          session=session,
                                                          redis=self.redis)
 
-        roles = await RoleRepository.get_roles(user_id=user_id, include_defaults=True, session=session)
-        roles_available = RoleUseCase.get_ids_roles_available(roles=roles, subtype_id=subtype)
+        roles_objects = await RoleRepository.get_roles_objects_localized(user_id=user_id, include_defaults=True, session=session, user=user)
+        roles_available = RoleUseCase.get_ids_roles_available(roles=roles_objects, subtype_id=subtype)
+        
+        # Получаем роли для клавиатуры (в формате кортежей)
+        roles = await RoleRepository.get_roles_localized(user_id=user_id, include_defaults=True, session=session, user=user)
 
-        description = await RoleRepository.get_role_description(role_id=role_id, session=session)
+        description = await RoleRepository.get_role_description_localized(role_id=role_id, session=session, user=user)
         if not role_id in roles_available:
             text = get_text("subs_role_text", user, description=description)
             trial_used = True
