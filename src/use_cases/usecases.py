@@ -18,6 +18,7 @@ from src.use_cases.process_message.process_message import ProcessMessageUseCase
 from src.use_cases.process_message.handle_text_message import HandleTextMessageUseCase
 from src.use_cases.process_message.handle_photo_message import HandlePhotoMessageUseCase
 from src.use_cases.subscription import SubscriptionUseCase
+from src.use_cases.settings import SettingsUseCase
 from app.config import Settings
 from src.adapters.s3.s3_client import S3Client
 
@@ -88,5 +89,7 @@ class UseCases:
         self.subscription = SubscriptionUseCase(redis=redis,
                                                 keyboard=keyboard,
                                                 yookassa=yookassa)
+
+        self.settings = SettingsUseCase(keyboard=keyboard)
 
         self.handle_payment = HandlePaymentUseCase()

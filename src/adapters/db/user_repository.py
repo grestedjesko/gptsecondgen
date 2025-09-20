@@ -23,3 +23,21 @@ class UserRepository:
             sa.select(User).where(User.user_id == user_id)
         )
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_user_language(user_id: int, session: AsyncSession) -> str | None:
+        """Получает сохраненный язык пользователя"""
+        result = await session.execute(
+            sa.select(User.language).where(User.user_id == user_id)
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def set_user_language(user_id: int, language: str, session: AsyncSession):
+        """Устанавливает язык пользователя"""
+        await session.execute(
+            sa.update(User)
+            .where(User.user_id == user_id)
+            .values(language=language)
+        )
+        await session.commit()

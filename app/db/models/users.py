@@ -14,6 +14,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=func.now(), onupdate=func.now())
     utm: Mapped[str] = mapped_column(String(255), nullable=True)
+    language: Mapped[str] = mapped_column(String(10), nullable=True)  # 'ru' или 'en'
 
     selected_model = relationship("UserSelectedModels", back_populates="user")
     current_role = relationship("UserRoles", back_populates="user")

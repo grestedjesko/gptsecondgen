@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import or_
 from app.db.models import UserRoles, AiRoles
 from config.i18n import get_localized_role_name, get_localized_role_description
+from src.services.i18n_service import I18nService
 from aiogram.types import User
 from dataclasses import dataclass
 
@@ -43,10 +44,13 @@ class RoleRepository:
         # Получаем оригинальные роли
         roles = await RoleRepository.get_roles(session, user_id, include_defaults)
         
+        # Получаем сохраненный язык пользователя
+        saved_language = await I18nService.get_user_language(user.id, session)
+        
         # Локализуем названия
         localized_roles = []
         for role_id, original_name, role_user_id, free_available in roles:
-            localized_name = get_localized_role_name(original_name, user)
+            localized_name = get_localized_role_name(original_name, user, saved_language)
             localized_roles.append((role_id, localized_name, role_user_id, free_available))
         
         return localized_roles
@@ -59,10 +63,13 @@ class RoleRepository:
         # Получаем оригинальные роли
         roles = await RoleRepository.get_roles(session, user_id, include_defaults)
         
+        # Получаем сохраненный язык пользователя
+        saved_language = await I18nService.get_user_language(user.id, session)
+        
         # Локализуем названия и создаем объекты RoleInfo
         localized_roles = []
         for role_id, original_name, role_user_id, free_available in roles:
-            localized_name = get_localized_role_name(original_name, user)
+            localized_name = get_localized_role_name(original_name, user, saved_language)
             localized_roles.append(RoleInfo(
                 id=role_id,
                 name=localized_name,
@@ -99,9 +106,12 @@ class RoleRepository:
         
         if not role_name:
             return None
+        
+        # Получаем сохраненный язык пользователя
+        saved_language = await I18nService.get_user_language(user.id, session)
             
         # Возвращаем локализованное описание
-        return get_localized_role_description(role_name, user)
+        return get_localized_role_description(role_name, user, saved_language)
 
     @staticmethod
     async def get_role_prompt(role_id: int, session: AsyncSession) -> str | None:

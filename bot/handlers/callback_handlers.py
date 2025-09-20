@@ -165,3 +165,22 @@ async def subs_id(call: CallbackQuery, session: AsyncSession, usecases: UseCases
 async def start_trial(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     text, kbd = await usecases.subscription.generate_payment(call=call, subs_id=1, session=session)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'settings')
+async def settings(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.settings.run(user_id=call.from_user.id, session=session, user=call.from_user)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'settings_language')
+async def settings_language(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.settings.show_language_selection(user_id=call.from_user.id, session=session, user=call.from_user)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data.startswith('set_language:'))
+async def set_language(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    _, language = call.data.split(':')
+    text, kbd = await usecases.settings.change_language(user_id=call.from_user.id, language=language, session=session, user=call.from_user)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')

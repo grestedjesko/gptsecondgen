@@ -4,7 +4,7 @@ from src.adapters.cache.redis_cache import RedisCache
 from src.adapters.db.user_subs_repository import UserSubsRepository
 from bot.keyboards.keyboards import Keyboard
 from src.adapters.db.role_repository import RoleRepository
-from config.i18n import get_text
+from src.services.i18n_service import I18nService
 from bot.states import RoleCreation
 from aiogram.types import User
 
@@ -18,12 +18,12 @@ def _norm(s: str) -> str:
 def _len_ok(s: str, lo: int, hi: int) -> bool:
     return lo <= len(s) <= hi
 
-async def _require_title(state: FSMContext, user: User) -> str | None:
+async def _require_title(state: FSMContext, user: User, session: AsyncSession) -> str | None:
     """Проверяем, что в FSM есть title; если нет — очищаем и возвращаем текст-ошибку."""
     data = await state.get_data()
     if not data.get("title"):
         await state.clear()
-        return get_text("ROLE_MSG_RESET", user)
+        return await I18nService.get_text("ROLE_MSG_RESET", user, session)
     return None
 
 class RoleUseCase:
@@ -40,10 +40,10 @@ class RoleUseCase:
         selected = await RoleRepository.get_selected_role_id(user_id=user_id, session=session)
         description = await RoleRepository.get_role_description_localized(role_id=selected, session=session, user=user)
 
-        text = get_text("select_role_text", user, description=description)
-        kbd = self.keyboard.role_keyboard(user_id=user_id,
-                                          roles_list=roles,
-                                          selected_role_id=selected, subtype=subtype, user=user, page=page)
+        text = await I18nService.get_text("select_role_text", user, session, description=description)
+        kbd = await self.keyboard.role_keyboard(user_id=user_id,
+                                                roles_list=roles,
+                                                selected_role_id=selected, subtype=subtype, user=user, page=page, session=session)
         return text, kbd
 
     async def set(self, user_id: int, role_id: int, session: AsyncSession, user: User):
@@ -59,21 +59,22 @@ class RoleUseCase:
 
         description = await RoleRepository.get_role_description_localized(role_id=role_id, session=session, user=user)
         if not role_id in roles_available:
-            text = get_text("subs_role_text", user, description=description)
+            text = await I18nService.get_text("subs_role_text", user, session, description=description)
             trial_used = True
-            kbd = self.keyboard.role_subs_keyboard(trial_used=trial_used, user=user)
+            kbd = await self.keyboard.role_subs_keyboard(trial_used=trial_used, user=user, session=session)
             return text, kbd
 
         await RoleRepository.update_selected_role(user_id=user_id,
                                                   selected_role=role_id,
                                                   session=session)
 
-        text = get_text("select_role_text", user, description=description)
-        kbd = Keyboard.role_keyboard(user_id=user_id,
-                                     roles_list=roles,
-                                     selected_role_id=role_id,
-                                     subtype=subtype,
-                                     user=user)
+        text = await I18nService.get_text("select_role_text", user, session, description=description)
+        kbd = await self.keyboard.role_keyboard(user_id=user_id,
+                                                roles_list=roles,
+                                                selected_role_id=role_id,
+                                                subtype=subtype,
+                                                user=user,
+                                                session=session)
         return text, kbd
 
     async def start_role_creation(self, user_id: int, session: AsyncSession, state: FSMContext, user: User):
@@ -81,17 +82,17 @@ class RoleUseCase:
 
         if subtype == 0:
             trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
-            text = get_text("create_role_subs_text", user)
-            kbd = self.keyboard.role_subs_keyboard(trial_used=trial_used, user=user)
+            text = await I18nService.get_text("create_role_subs_text", user, session)
+            kbd = await self.keyboard.role_subs_keyboard(trial_used=trial_used, user=user, session=session)
             return text, kbd
 
         existing = await RoleRepository.get_custom_roles(user_id=user_id, session=session)
         if len(existing) >= 5:
-            kbd = Keyboard.custom_role_keyboard(roles=existing, user=user)
-            return get_text("ROLE_LIMIT_REACHED", user), kbd
+            kbd = await self.keyboard.custom_role_keyboard(roles=existing, user=user, session=session)
+            return await I18nService.get_text("ROLE_LIMIT_REACHED", user, session), kbd
 
-        text = get_text("ROLE_ASK_TITLE", user)
-        kbd = self.keyboard.cancel_keyboard(user=user)
+        text = await I18nService.get_text("ROLE_ASK_TITLE", user, session)
+        kbd = await self.keyboard.cancel_keyboard(user=user, session=session)
         await state.set_state(RoleCreation.waiting_for_title)
         return text, kbd
 
@@ -99,40 +100,40 @@ class RoleUseCase:
     async def set_role_name(self, user_id: int, session: AsyncSession, state: FSMContext, title: str, user: User):
         title = _norm(title)
         if not _len_ok(title, TITLE_MIN, TITLE_MAX):
-            return get_text("ROLE_MSG_TITLE_LEN", user)
+            return await I18nService.get_text("ROLE_MSG_TITLE_LEN", user, session)
 
         if await RoleRepository.exists_by_user_and_title(user_id=user_id, title=title, session=session):
-            return get_text("ROLE_MSG_TITLE_EXISTS", user)
+            return await I18nService.get_text("ROLE_MSG_TITLE_EXISTS", user, session)
 
         await state.update_data(title=title)
         await state.set_state(RoleCreation.waiting_for_description)
-        return get_text("ROLE_MSG_ASK_DESC", user)
+        return await I18nService.get_text("ROLE_MSG_ASK_DESC", user, session)
 
 
-    async def set_role_description(self, state: FSMContext, description: str, user: User):
+    async def set_role_description(self, state: FSMContext, description: str, user: User, session: AsyncSession):
         if description == "/skip":
             await state.update_data(description=None)
             await state.set_state(RoleCreation.waiting_for_prompt)
-            return get_text("ROLE_MSG_ASK_PROMPT", user)
+            return await I18nService.get_text("ROLE_MSG_ASK_PROMPT", user, session)
 
         description = _norm(description)
         if not _len_ok(description, TEXT_MIN, TEXT_MAX):
-            return get_text("ROLE_MSG_DESC_LEN", user)
+            return await I18nService.get_text("ROLE_MSG_DESC_LEN", user, session)
 
-        if (err := await _require_title(state, user)):
+        if (err := await _require_title(state, user, session)):
             return err
 
         await state.update_data(description=description)
         await state.set_state(RoleCreation.waiting_for_prompt)
-        return get_text("ROLE_MSG_ASK_PROMPT", user)
+        return await I18nService.get_text("ROLE_MSG_ASK_PROMPT", user, session)
 
 
     async def set_role_prompt(self, user_id: int, session: AsyncSession, state: FSMContext, prompt: str, user: User):
         prompt = _norm(prompt)
         if not _len_ok(prompt, TEXT_MIN, TEXT_MAX):
-            return get_text("ROLE_MSG_PROMPT_LEN", user)
+            return await I18nService.get_text("ROLE_MSG_PROMPT_LEN", user, session)
 
-        if (err := await _require_title(state, user)):
+        if (err := await _require_title(state, user, session)):
             return err
 
         data = await state.get_data()
@@ -162,23 +163,23 @@ class RoleUseCase:
 
     async def show_custom(self, user_id: int, session: AsyncSession, user: User):
         custom_roles = await RoleRepository.get_custom_roles(user_id=user_id, session=session)
-        text = get_text("ROLE_CUSTOM_LIST", user)
-        kbd = Keyboard.custom_role_keyboard(roles=custom_roles, user=user)
+        text = await I18nService.get_text("ROLE_CUSTOM_LIST", user, session)
+        kbd = await self.keyboard.custom_role_keyboard(roles=custom_roles, user=user, session=session)
         return text, kbd
 
     async def show_settings(self, user_id: int, role_id: int, session: AsyncSession, user: User):
         role_details = await RoleRepository.get_role_details(role_id=role_id, session=session)
         if not role_details:
-            return "Роль не найдена", Keyboard.custom_role_keyboard(roles=await RoleRepository.get_custom_roles(user_id=user_id, session=session), user=user)
+            return "Роль не найдена", await self.keyboard.custom_role_keyboard(roles=await RoleRepository.get_custom_roles(user_id=user_id, session=session), user=user, session=session)
         
         name, description, prompt = role_details
         text = f"<b>📝 {name}</b>\n\n<b>📋 Описание:</b>\n{description or 'Не указано'}\n\n<b>🤖 Промпт:</b>\n{prompt or 'Не указано'}"
-        kbd = Keyboard.role_settings_keyboard(role_id=role_id, user=user)
+        kbd = await self.keyboard.role_settings_keyboard(role_id=role_id, user=user, session=session)
         return text, kbd
 
     async def delete(self, user_id: int, role_id: int, session: AsyncSession, user: User):
         deleted = await RoleRepository.delete_role(user_id=user_id, role_id=role_id, session=session)
         if not deleted:
-            return get_text("ROLE_CANNOT_DELETE", user), Keyboard.custom_role_keyboard(roles=await RoleRepository.get_custom_roles(user_id=user_id, session=session), user=user)
+            return await I18nService.get_text("ROLE_CANNOT_DELETE", user, session), await self.keyboard.custom_role_keyboard(roles=await RoleRepository.get_custom_roles(user_id=user_id, session=session), user=user, session=session)
  
         return await self.show_custom(user_id=user_id, session=session, user=user)

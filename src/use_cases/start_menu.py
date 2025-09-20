@@ -8,7 +8,7 @@ from aiogram.types import InlineKeyboardMarkup, User
 from app.config import Settings
 from bot.keyboards.keyboards import Keyboard
 from src.adapters.db.model_repository import ModelRepository
-from config.i18n import get_text
+from src.services.i18n_service import I18nService
 
 
 class StartMenuUseCase:
@@ -26,9 +26,9 @@ class StartMenuUseCase:
 
         if subtype_id == 0:
             text_key = "nosubs_text" if trial_used else "nosubs_trial_text"
-            text = get_text(text_key, user)
+            text = await I18nService.get_text(text_key, user, session)
         else:
             model_id = await UserModelRepository.get_selected_model_id(user_id=user_id, session=session)
-            model = await ModelRepository.get_model_info(model_id=model_id, session=session, redis=self.redis)
-            text = get_text("subs_text", user, model_name=model.name)
-        return text, self.keyboard.main_keyboard(has_subs=bool(subtype_id), trial_used=trial_used, user=user)
+            model = await ModelRepository.get_model_info_localized(model_id=model_id, session=session, redis=self.redis, user=user)
+            text = await I18nService.get_text("subs_text", user, session, model_name=model.name)
+        return text, await self.keyboard.main_keyboard(has_subs=bool(subtype_id), trial_used=trial_used, user=user, session=session)

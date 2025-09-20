@@ -4,6 +4,7 @@ from app.db.models import AiModels, SubTypeLimits
 from src.adapters.cache.redis_cache import RedisCache
 from src.services.ai.data_classes import ModelConfig, ModelInfo
 from config.i18n import get_localized_model_name
+from src.services.i18n_service import I18nService
 from aiogram.types import User
 
 import json
@@ -41,10 +42,13 @@ class ModelRepository:
         # Получаем оригинальные модели
         models = await ModelRepository.get_all_models(session, redis)
         
+        # Получаем сохраненный язык пользователя
+        saved_language = await I18nService.get_user_language(user.id, session)
+        
         # Локализуем названия
         localized_models = []
         for model_id, original_name, model_class_id in models:
-            localized_name = get_localized_model_name(original_name, user)
+            localized_name = get_localized_model_name(original_name, user, saved_language)
             localized_models.append((model_id, localized_name, model_class_id))
         
         return localized_models
@@ -113,6 +117,28 @@ class ModelRepository:
 
         return ModelInfo(**payload)  # return dot-access object
 
+    @staticmethod
+    async def get_model_info_localized(model_id: int, session: AsyncSession, redis: RedisCache, user: User) -> ModelInfo | None:
+        """
+        Получает информацию о модели с локализованным названием
+        """
+        # Получаем оригинальную информацию о модели
+        model_info = await ModelRepository.get_model_info(model_id, session, redis)
+        if not model_info:
+            return None
+        
+        # Получаем сохраненный язык пользователя
+        saved_language = await I18nService.get_user_language(user.id, session)
+        
+        # Локализуем название
+        localized_name = get_localized_model_name(model_info.name, user, saved_language)
+        
+        # Создаем новый объект с локализованным названием
+        return ModelInfo(
+            model_class_id=model_info.model_class_id,
+            name=localized_name,
+            description=model_info.description
+        )
 
     @staticmethod
     async def get_allowed_classes(subtype_id: int, session: AsyncSession, redis: RedisCache):

@@ -10,6 +10,11 @@ import asyncio
 
 command_router = Router()
 
+@command_router.message(Command('settings'))
+async def settings(message: types.Message, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.settings.run(user_id=message.from_user.id, session=session, user=message.from_user)
+    await message.answer(text=text, reply_markup=kbd)   
+
 
 @command_router.message(Command('start'))
 async def start_menu(message: types.Message, session: AsyncSession, usecases: UseCases):

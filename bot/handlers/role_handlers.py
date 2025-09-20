@@ -30,10 +30,11 @@ async def set_role_title(message: Message, session: AsyncSession, usecases: UseC
 
 
 @role_router.message(StateFilter(RoleCreation.waiting_for_description))
-async def set_role_description(message: Message, usecases: UseCases, state: FSMContext):
+async def set_role_description(message: Message, usecases: UseCases, state: FSMContext, session: AsyncSession):
     text = await usecases.role.set_role_description(state=state,
                                                     description=message.text,
-                                                    user=message.from_user)
+                                                    user=message.from_user,
+                                                    session=session)
     await message.answer(text)
 
 

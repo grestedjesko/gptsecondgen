@@ -1,10 +1,13 @@
 from typing import Optional
+import asyncio
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import AiRoles
 from config.i18n import get_text
+from src.services.i18n_service import I18nService
 
 
 class Keyboard:
@@ -12,53 +15,65 @@ class Keyboard:
         self.support_link = support_link
         self.webapp_url = webapp_url
 
+    async def _get_text(self, key: str, user: User, session: AsyncSession = None, **kwargs) -> str:
+        """Вспомогательная функция для получения текста с учетом сохраненного языка"""
+        if session:
+            return await I18nService.get_text(key, user, session, **kwargs)
+        else:
+            return get_text(key, user, **kwargs)
 
-    def main_keyboard(self, has_subs: bool, trial_used: bool, user: User) -> InlineKeyboardMarkup:
+
+    async def main_keyboard(self, has_subs: bool, trial_used: bool, user: User, session: AsyncSession = None) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
 
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_select_ai", user), 
+            text=await self._get_text("btn_select_ai", user, session), 
             callback_data="select_ai"
         ))
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_select_role", user), 
+            text=await self._get_text("btn_select_role", user, session), 
             callback_data="select_role"
         ))
 
         if not has_subs:
             if trial_used:
                 builder.add(InlineKeyboardButton(
-                    text=get_text("btn_buy_subs", user), 
+                    text=await self._get_text("btn_buy_subs", user, session), 
                     callback_data="subs"
                 ))
             else:
                 builder.add(InlineKeyboardButton(
-                    text=get_text("btn_trial_3_days", user), 
+                    text=await self._get_text("btn_trial_3_days", user, session), 
                     callback_data="start_trial"
                 ))
 
         builder.adjust(1)
-        # Эти две кнопки будут в одной строке
+        # Эти три кнопки будут в одной строке
         builder.row(
             InlineKeyboardButton(
-                text=get_text("btn_profile", user), 
+                text=await self._get_text("btn_profile", user, session), 
                 callback_data="profile"
             ),
             InlineKeyboardButton(
-                text=get_text("btn_support", user), 
+                text=await self._get_text("btn_support", user, session), 
                 url=self.support_link
+            ),
+            InlineKeyboardButton(
+                text=await self._get_text("settings_title", user, session), 
+                callback_data="settings"
             )
         )
 
         return builder.as_markup()
 
 
-    @staticmethod
-    def select_ai_keyboard(
+    async def select_ai_keyboard(
+        self,
         ai_models_list: list[tuple[int, str, str]],
         allowed_classes: list[str],
         selected: int,
-        user: User
+        user: User,
+        session: AsyncSession = None
     ) -> InlineKeyboardMarkup:
         """
         ai_models_list: [(id, name, ai_class), ...]
@@ -76,14 +91,13 @@ class Keyboard:
             builder.add(InlineKeyboardButton(text=btn_text, callback_data=f"set_model:{mid}"))
 
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_back", user), 
+            text=await self._get_text("btn_back", user, session), 
             callback_data='main_menu'
         ))
         builder.adjust(1, 2, 1, 2, 2, 2, 1)
         return builder.as_markup()
 
-    @staticmethod
-    def role_keyboard(user_id: int, roles_list: list, selected_role_id: int, subtype: int, user: User, page: int = 0, per_page: int = 5):
+    async def role_keyboard(self, user_id: int, roles_list: list, selected_role_id: int, subtype: int, user: User, page: int = 0, per_page: int = 5, session: AsyncSession = None):
         builder = InlineKeyboardBuilder()
         has_custom_roles = False
 
@@ -120,12 +134,12 @@ class Keyboard:
                 )
             )
         if has_custom_roles:
-            create_text = get_text("btn_edit_roles", user)
+            create_text = await self._get_text("btn_edit_roles", user, session)
             create_cb = 'custom_roles'
             if subtype == 0:
                 create_text = f'✏️ {create_text}'
         else:
-            create_text = get_text("btn_create_role", user)
+            create_text = await self._get_text("btn_create_role", user, session)
             create_cb = 'create_role'
             if subtype == 0:
                 create_text = f'➕ {create_text}'
@@ -154,110 +168,105 @@ class Keyboard:
             )
 
         builder.row(InlineKeyboardButton(
-            text=get_text("btn_back", user), 
+            text=await self._get_text("btn_back", user, session), 
             callback_data='main_menu'
         ))
         return builder.as_markup()
 
-    @staticmethod
-    def custom_role_keyboard(roles: Optional[list[AiRoles]], user: User):
+    async def custom_role_keyboard(self, roles: Optional[list[AiRoles]], user: User, session: AsyncSession = None):
         builder = InlineKeyboardBuilder()
         for role in roles:
             builder.add(InlineKeyboardButton(text=role.name, callback_data=f'settings_role_id={role.id}'))
 
         if len(roles) < 5:
             builder.add(InlineKeyboardButton(
-                text=get_text("btn_create_role", user), 
+                text=await self._get_text("btn_create_role", user, session), 
                 callback_data='create_role'
             ))
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_back", user), 
+            text=await self._get_text("btn_back", user, session), 
             callback_data='select_role'
         ))
         builder.adjust(1)
         return builder.as_markup()
 
-    @staticmethod
-    def role_settings_keyboard(role_id: int, user: User):
+    async def role_settings_keyboard(self, role_id: int, user: User, session: AsyncSession = None):
         builder = InlineKeyboardBuilder()
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_delete_role", user), 
+            text=await self._get_text("btn_delete_role", user, session), 
             callback_data=f'delete_role_id={role_id}'
         ))
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_back", user), 
+            text=await self._get_text("btn_back", user, session), 
             callback_data='custom_roles'
         ))
         builder.adjust(1)
         return builder.as_markup()
 
-    @staticmethod
-    def role_subs_keyboard(trial_used: bool, user: User):
+    async def role_subs_keyboard(self, trial_used: bool, user: User, session: AsyncSession = None):
         builder = InlineKeyboardBuilder()
         if trial_used:
             builder.add(InlineKeyboardButton(
-                text=get_text("btn_buy_subs", user), 
+                text=await self._get_text("btn_buy_subs", user, session), 
                 callback_data='subs'
             ))
         else:
             builder.add(InlineKeyboardButton(
-                text=get_text("btn_trial_3_days", user), 
+                text=await self._get_text("btn_trial_3_days", user, session), 
                 callback_data='start_trial'
             ))
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_back", user), 
+            text=await self._get_text("btn_back", user, session), 
             callback_data='select_role'
         ))
         builder.adjust(1)
         return builder.as_markup()
 
-    @staticmethod
-    def model_subs_keyboard(trial_used: bool, user: User):
+    async def model_subs_keyboard(self, trial_used: bool, user: User, session: AsyncSession = None):
         builder = InlineKeyboardBuilder()
         if trial_used:
             builder.add(InlineKeyboardButton(
-                text=get_text("btn_buy_subs", user), 
+                text=await self._get_text("btn_buy_subs", user, session), 
                 callback_data='subs'
             ))
         else:
             builder.add(InlineKeyboardButton(
-                text=get_text("btn_trial_3_days", user), 
+                text=await self._get_text("btn_trial_3_days", user, session), 
                 callback_data='start_trial'
             ))
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_main_menu", user), 
+            text=await self._get_text("btn_main_menu", user, session), 
             callback_data='main_menu'
         ))
         builder.adjust(1)
         return builder.as_markup()
 
-    @staticmethod
-    def profile_menu(has_subs: bool, trial_used: bool, user: User):
+    async def profile_menu(self, has_subs: bool, trial_used: bool, user: User, session: AsyncSession = None):
         builder = InlineKeyboardBuilder()
         if has_subs:
             builder.add(InlineKeyboardButton(
-                text=get_text("btn_settings_subs", user), 
+                text=await self._get_text("btn_settings_subs", user, session), 
                 callback_data='settings_subs'
             ))
         else:
             if trial_used:
                 builder.add(InlineKeyboardButton(
-                    text=get_text("btn_buy_subs", user), 
+                    text=await self._get_text("btn_buy_subs", user, session), 
                     callback_data='subs'
                 ))
             else:
                 builder.add(InlineKeyboardButton(
-                    text=get_text("btn_trial_3_days", user), 
+                    text=await self._get_text("btn_trial_3_days", user, session), 
                     callback_data='start_trial'
                 ))
 
         #builder.add(InlineKeyboardButton(text='💰️ Купить запросы', callback_data='buy_tokens'))
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_free_tokens", user), 
+            text=await self._get_text("btn_free_tokens", user, session), 
             callback_data='free_tokens'
         ))
         builder.add(InlineKeyboardButton(
-            text=get_text("btn_back", user), 
+            text=await self._get_text("btn_back", user, session), 
             callback_data='main_menu'
         ))
         builder.adjust(1)
@@ -302,11 +311,10 @@ class Keyboard:
         builder.adjust(1)
         return builder.as_markup()
 
-    @staticmethod
-    def cancel_keyboard(user: User):
+    async def cancel_keyboard(self, user: User, session: AsyncSession = None):
         return ReplyKeyboardMarkup(
             keyboard=[
-                [KeyboardButton(text=get_text("btn_cancel", user))]
+                [KeyboardButton(text=await self._get_text("btn_cancel", user, session))]
             ],
             resize_keyboard=True,
             one_time_keyboard=True
@@ -374,6 +382,40 @@ class Keyboard:
         builder.add(InlineKeyboardButton(
             text=get_text("btn_back", user), 
             callback_data='settings_subs'
+        ))
+        builder.adjust(1)
+        return builder.as_markup()
+
+    @staticmethod
+    def settings_keyboard(user: User, saved_language: str = None):
+        """Клавиатура главного меню настроек"""
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text=get_text("settings_language", user, saved_language), 
+            callback_data='settings_language'
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user, saved_language), 
+            callback_data='main_menu'
+        ))
+        builder.adjust(1)
+        return builder.as_markup()
+
+    @staticmethod
+    def language_selection_keyboard(user: User, saved_language: str = None):
+        """Клавиатура выбора языка"""
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text=get_text("language_russian", user, saved_language), 
+            callback_data='set_language:ru'
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("language_english", user, saved_language), 
+            callback_data='set_language:en'
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back_to_settings", user, saved_language), 
+            callback_data='settings'
         ))
         builder.adjust(1)
         return builder.as_markup()

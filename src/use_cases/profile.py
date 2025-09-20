@@ -8,7 +8,7 @@ from src.services.utils import get_week_start_date, get_new_week_start_date
 from datetime import datetime
 from src.adapters.cache.redis_cache import RedisCache
 from collections import defaultdict
-from config.i18n import get_text
+from src.services.i18n_service import I18nService
 from datetime import timedelta
 from aiogram.types import User
 
@@ -62,25 +62,25 @@ class ProfileUseCase:
                 "remaining_questions": remaining_questions,
             }
 
-        limit_text = await self.build_limit_text(profile_limits=result, user=user)
+        limit_text = await self.build_limit_text(profile_limits=result, user=user, session=session)
 
 
         if subtype_id == 0:
             generation_renew_date = await get_new_week_start_date()
-            text = get_text("profile_text_no_subs", user, limit_text=limit_text, generation_renew_date=generation_renew_date)
+            text = await I18nService.get_text("profile_text_no_subs", user, session, limit_text=limit_text, generation_renew_date=generation_renew_date)
         else:
             generation_renew_date = datetime.today().date() + timedelta(days=1)
             generation_renew_date = datetime.strftime(generation_renew_date, "%d.%m.%Y 00:00")
-            renewal_status = get_text("renewal_activated", user) if user_subs.will_renew else get_text("renewal_not_activated", user)
+            renewal_status = await I18nService.get_text("renewal_activated", user, session) if user_subs.will_renew else await I18nService.get_text("renewal_not_activated", user, session)
             period_end = datetime.strftime(user_subs.period_end, '%d.%m.%Y %H:%M')
-            text = get_text("profile_text_subs", user, limit_text=limit_text, generation_renew_date=generation_renew_date, period_end=period_end, renewal_status=renewal_status)
+            text = await I18nService.get_text("profile_text_subs", user, session, limit_text=limit_text, generation_renew_date=generation_renew_date, period_end=period_end, renewal_status=renewal_status)
 
         trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
-        kbd = self.keyboard.profile_menu(has_subs=bool(subtype_id), trial_used=trial_used, user=user)
+        kbd = await self.keyboard.profile_menu(has_subs=bool(subtype_id), trial_used=trial_used, user=user, session=session)
         return text, kbd
 
 
-    async def build_limit_text(self, profile_limits, user: User) -> str:
+    async def build_limit_text(self, profile_limits, user: User, session: AsyncSession) -> str:
         light_remaining = profile_limits.get(self.config.light_class_id, {}).get("remaining_questions", 0)
         normal_remaining = profile_limits.get(self.config.normal_class_id, {}).get("remaining_questions", 0)
         smart_remaining = profile_limits.get(self.config.smart_class_id, {}).get("remaining_questions", 0)
@@ -88,7 +88,7 @@ class ProfileUseCase:
         mj_remaining = profile_limits.get(self.config.midjourney_class_id, {}).get("remaining_questions", 0)
 
         # Формируем текст
-        return get_text("default_limit_text", user, 
+        return await I18nService.get_text("default_limit_text", user, session,
             light_remaining=light_remaining,
             normal_remaining=normal_remaining,
             smart_remaining=smart_remaining,

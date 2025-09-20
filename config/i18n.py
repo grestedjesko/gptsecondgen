@@ -279,6 +279,15 @@ P.S. — с подпиской я реально гораздо круче 😎"
         "sub_monthly": "Месячная", 
         "sub_yearly": "Годовая",
         "sub_trial": "5 дней за 1 рубль",
+        
+        # Settings
+        "settings_title": "⚙️ Настройки",
+        "settings_language": "🌐 Язык",
+        "settings_language_current": "Текущий язык: {language}",
+        "language_russian": "🇷🇺 Русский",
+        "language_english": "🇺🇸 English",
+        "language_changed": "✅ Язык изменен на {language}",
+        "btn_back_to_settings": "⬅️ Назад к настройкам",
     },
     
     Language.EN: {
@@ -544,22 +553,38 @@ By clicking "Pay", you agree to the Rules for accepting recurring payments. You 
         "sub_monthly": "Monthly",
         "sub_yearly": "Yearly", 
         "sub_trial": "5 days for 1 ruble",
+        
+        # Settings
+        "settings_title": "⚙️ Settings",
+        "settings_language": "🌐 Language",
+        "settings_language_current": "Current language: {language}",
+        "language_russian": "🇷🇺 Русский",
+        "language_english": "🇺🇸 English",
+        "language_changed": "✅ Language changed to {language}",
+        "btn_back_to_settings": "⬅️ Back to settings",
     }
 }
 
 
-def get_user_language(user: User) -> Language:
+def get_user_language(user: User, saved_language: str = None) -> Language:
     """
-    Определяет язык пользователя на основе его настроек Telegram
+    Определяет язык пользователя на основе сохраненных настроек или настроек Telegram
     
     Args:
         user: Объект пользователя Telegram
+        saved_language: Сохраненный язык пользователя из базы данных ('ru' или 'en')
     
     Returns:
-        Язык пользователя
+        Язык пользователя (Language.RU или Language.EN)
     """
-    print(user.language_code)
-    print(user)
+    # Если есть сохраненный язык, используем его
+    if saved_language:
+        if saved_language == 'en':
+            return Language.EN
+        elif saved_language == 'ru':
+            return Language.RU
+    
+    # Иначе определяем по языку Telegram
     if not user.language_code:
         return Language.RU
     
@@ -578,19 +603,20 @@ def get_user_language(user: User) -> Language:
     return Language.RU
 
 
-def get_text(key: str, user: User, **kwargs) -> str:
+def get_text(key: str, user: User, saved_language: str = None, **kwargs) -> str:
     """
     Получает переведенный текст для пользователя
     
     Args:
         key: Ключ текста
         user: Объект пользователя Telegram
+        saved_language: Сохраненный язык пользователя из базы данных
         **kwargs: Параметры для форматирования строки
     
     Returns:
         Переведенный текст
     """
-    language = get_user_language(user)
+    language = get_user_language(user, saved_language)
     text = TEXTS[language].get(key, key)
     
     if kwargs:
@@ -603,13 +629,14 @@ def get_text(key: str, user: User, **kwargs) -> str:
     return text
 
 
-def get_localized_model_name(model_name: str, user: User) -> str:
+def get_localized_model_name(model_name: str, user: User, saved_language: str = None) -> str:
     """
     Получает локализованное название модели AI
     
     Args:
         model_name: Оригинальное название модели из базы данных
         user: Объект пользователя Telegram
+        saved_language: Сохраненный язык пользователя из базы данных
     
     Returns:
         Локализованное название модели
@@ -630,19 +657,20 @@ def get_localized_model_name(model_name: str, user: User) -> str:
     
     # Если есть маппинг, возвращаем локализованное название
     if model_name in model_mapping:
-        return get_text(model_mapping[model_name], user)
+        return get_text(model_mapping[model_name], user, saved_language)
     
     # Если маппинга нет, возвращаем оригинальное название
     return model_name
 
 
-def get_localized_role_name(role_name: str, user: User) -> str:
+def get_localized_role_name(role_name: str, user: User, saved_language: str = None) -> str:
     """
     Получает локализованное название роли AI
     
     Args:
         role_name: Оригинальное название роли из базы данных
         user: Объект пользователя Telegram
+        saved_language: Сохраненный язык пользователя из базы данных
     
     Returns:
         Локализованное название роли
@@ -655,19 +683,20 @@ def get_localized_role_name(role_name: str, user: User) -> str:
     
     # Если есть маппинг, возвращаем локализованное название
     if role_name in role_mapping:
-        return get_text(role_mapping[role_name], user)
+        return get_text(role_mapping[role_name], user, saved_language)
     
     # Если маппинга нет, возвращаем оригинальное название
     return role_name
 
 
-def get_localized_role_description(role_name: str, user: User) -> str:
+def get_localized_role_description(role_name: str, user: User, saved_language: str = None) -> str:
     """
     Получает локализованное описание роли AI
     
     Args:
         role_name: Оригинальное название роли из базы данных
         user: Объект пользователя Telegram
+        saved_language: Сохраненный язык пользователя из базы данных
     
     Returns:
         Локализованное описание роли
@@ -680,7 +709,7 @@ def get_localized_role_description(role_name: str, user: User) -> str:
     
     # Если есть маппинг, возвращаем локализованное описание
     if role_name in role_description_mapping:
-        return get_text(role_description_mapping[role_name], user)
+        return get_text(role_description_mapping[role_name], user, saved_language)
     
     # Если маппинга нет, возвращаем оригинальное описание
     return role_name
