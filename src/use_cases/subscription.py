@@ -13,7 +13,7 @@ from config.i18n import get_text
 from bot.keyboards.keyboards import Keyboard
 from src.adapters.db.user_subs_repository import UserSubsRepository
 from src.adapters.db.user_payment_methods_repository import UserPaymentMethodsRepository
-
+from src.adapters.db.packets_repository import PacketsRepository
 
 
 class SubscriptionUseCase:
@@ -22,9 +22,17 @@ class SubscriptionUseCase:
         self.keyboard = keyboard
         self.yookassa = yookassa
 
+    async def show_subs_main_menu(self, user_id: int, session: AsyncSession, user: User):
+        text = get_text("base_subs_text", user)
+        packet_types = await PacketsRepository.get_all_packet_types(session=session)
+        
+        trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
+
+        keyboard = await Keyboard.subs_main_menu(user=user, packet_types=packet_types)
+        return text, keyboard
+
     async def show_subs_menu(self, user_id: int, session: AsyncSession, user: User):
         text = get_text("base_subs_text", user)
-        trial_used = await UserSubsRepository.get_trial_used(user_id=user_id, session=session)
 
         available_subs = []
 
@@ -134,13 +142,14 @@ class SubscriptionUseCase:
 
     async def generate_payment(self, call: CallbackQuery, subs_id: int, session: AsyncSession):
         user_id = call.from_user.id
+        user = call.from_user
         subs = await SubsRepository.get_subs_info(subs_id=subs_id, session=session)
         amount, stars_amount, period = subs.price, subs.stars_price, subs.period
 
         if subs_id == 1:
-            text = subscribe_trial_text
+            text = get_text("subscribe_trial_text", user)
         else:
-            text = subscribe_text
+            text = get_text("subscribe_text", user)
 
 
         invoice = await InvoiceRepository.create(user_id=user_id,

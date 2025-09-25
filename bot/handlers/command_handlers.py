@@ -45,7 +45,7 @@ async def profile(message: types.Message, session: AsyncSession, usecases: UseCa
     await message.answer(text=text, reply_markup=kbd, parse_mode='html')
 
 
-@command_router.message(Command('clear_history'))
+@command_router.message(Command('new'))
 async def clear_history(message: types.Message, session: AsyncSession):
     await message.delete()
 

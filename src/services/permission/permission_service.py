@@ -1,8 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.cache.redis_cache import RedisCache
-from src.adapters.db.usage_repository import UsageRepository
-from src.adapters.db.subtype_repository import SubtypeLimitsRepository
+from src.services.usage_counter_service import UsageCounterService
 from datetime import datetime
 from config.subs import SubscriptionConfig
 from src.adapters.db.model_repository import ModelRepository
@@ -25,33 +24,14 @@ class PermissionService:
                            sub_type: int,
                            model_id: int,
                            session: AsyncSession):
-        model_class = await ModelRepository.get_model_class_by_id(model_id=model_id,
-                                                                  session=session,
-                                                                  redis=self.redis)
-        print('subtype ', sub_type)
+        counter = UsageCounterService(self.redis, self.subs_config.free_weekly_limit)
         if sub_type == 0:
-            week_start = await get_week_start_date()
-            usage = await UsageRepository.get_week_usage(user_id=user_id,
-                                                         model_class=model_class,
-                                                         week_start=week_start,
-                                                         session=session)
-            token_used, message_used = usage
-
+            used = await counter.get_free_used_this_week(user_id)
+            return used < self.subs_config.free_weekly_limit
         else:
-            usage = await UsageRepository.get_usage(user_id=user_id,
-                                                    model_class=model_class,
-                                                    day=datetime.now().date(),
-                                                    session=session)
-            token_used, message_used = usage
-
-        limits = await SubtypeLimitsRepository.get_limits(subtype_id=sub_type,
-                                                          model_class_id=model_class,
-                                                          session=session,
-                                                          redis=self.redis)
-        message_limit = int(limits.get('question_limit', 0))
-        token_limit = int(limits.get('token_limit', 0))
-
-        return message_used < message_limit and token_used < token_limit
+            used = await counter.get_subscription_used_today(user_id)
+            # subscription daily limit should come from active plan; fallback to config
+            return used < self.subs_config.subs_daily_limit
 
     async def check_voice_availability(self,
                                        voice_duration: int,

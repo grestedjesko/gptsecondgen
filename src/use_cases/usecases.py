@@ -19,6 +19,7 @@ from src.use_cases.process_message.handle_text_message import HandleTextMessageU
 from src.use_cases.process_message.handle_photo_message import HandlePhotoMessageUseCase
 from src.use_cases.subscription import SubscriptionUseCase
 from src.use_cases.settings import SettingsUseCase
+from src.use_cases.create_media import CreateMediaUseCase
 from app.config import Settings
 from src.adapters.s3.s3_client import S3Client
 
@@ -48,7 +49,7 @@ class UseCases:
                                       config=config,
                                       keyboard=keyboard)
 
-        self.select_ai = SelectAiModelUseCase(redis=redis, keyboard=keyboard)
+        self.select_ai = SelectAiModelUseCase(redis=redis, keyboard=keyboard, config=config)
         self.role = RoleUseCase(redis=redis, keyboard=keyboard)
 
         chat_history_service = ChatHistoryService(redis=redis)
@@ -93,3 +94,5 @@ class UseCases:
         self.settings = SettingsUseCase(keyboard=keyboard)
 
         self.handle_payment = HandlePaymentUseCase()
+
+        self.create_media = CreateMediaUseCase(keyboard=keyboard)

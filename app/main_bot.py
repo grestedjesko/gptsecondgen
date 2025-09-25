@@ -40,12 +40,16 @@ async def set_private_commands_i18n(bot: Bot):
 
     await bot.set_my_commands(
         commands=[
-            BotCommand(command="start",         description="🏠 Главное меню"),
-            BotCommand(command="select_ai",     description="🤖 Выбрать нейросеть"),
-            BotCommand(command="select_role",   description="🤠 Выбрать роль"),
-            BotCommand(command="profile",       description="👤 Профиль"),
-            BotCommand(command="clear_history", description="🗑 Очистить диалог"),
-            BotCommand(command="policy",        description="📄 Пользовательское соглашение"),
+            BotCommand(command="start", description="🏠 Главное меню"),
+            BotCommand(command="premium", description="🔥 Премиум"),
+            BotCommand(command="select_ai", description="🤖 Выбрать нейросеть"),
+            BotCommand(command="select_role", description="🤠 Выбрать роль"),
+            BotCommand(command="img", description="🖼 Создать изображение"),
+            BotCommand(command="video", description="🎬 Создать видео"),
+            BotCommand(command="music", description="🎤 Создать песню"),
+            BotCommand(command="profile", description="👤 Профиль"),
+            BotCommand(command="new", description="🗑 Очистить диалог"),
+            BotCommand(command="policy", description="📄 Пользовательское соглашение"),
         ],
         scope=BotCommandScopeAllPrivateChats(),
         language_code="ru",
@@ -53,12 +57,16 @@ async def set_private_commands_i18n(bot: Bot):
 
     await bot.set_my_commands(
         commands=[
-            BotCommand(command="start",         description="🏠 Home"),
-            BotCommand(command="select_ai",     description="🤖 Choose AI"),
-            BotCommand(command="select_role",   description="🤠 Choose role"),
-            BotCommand(command="profile",       description="👤 Profile"),
-            BotCommand(command="clear_history", description="🗑 Clear dialog"),
-            BotCommand(command="policy",        description="📄 Terms of Use"),
+            BotCommand(command="start", description="🏠 Home"),
+            BotCommand(command="premium", description="🔥 Premium"),
+            BotCommand(command="select_ai", description="🤖 Choose AI"),
+            BotCommand(command="select_role", description="🤠 Choose role"),
+            BotCommand(command="img", description="🖼 Create image"),
+            BotCommand(command="video", description="🎬 Create video"),
+            BotCommand(command="music", description="🎤 Create music"),
+            BotCommand(command="profile", description="👤 Profile"),
+            BotCommand(command="new", description="🗑 Clear dialog"),
+            BotCommand(command="policy", description="📄 Terms of Use"),
         ],
         scope=BotCommandScopeAllPrivateChats(),
         language_code="en",
@@ -95,11 +103,10 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def on_startup():
         await init_models(engine)
-        #await set_private_commands_i18n(bot)
+        await set_private_commands_i18n(bot)
         #async with session_factory() as session:
          #   await seed_data(session=session)
-        pass
-
+        
     @app.post("/webhook")
     async def telegram_webhook(update: dict):
         #todo: remove try

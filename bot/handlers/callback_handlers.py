@@ -134,7 +134,7 @@ async def subs_extend(call: CallbackQuery, session: AsyncSession, usecases: UseC
 
 @callback_router.callback_query(F.data == 'subs_list')
 async def subs_list(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
-    text, kbd = await usecases.subscription.show_subs_menu(user_id=call.from_user.id, session=session, user=call.from_user)
+    text, kbd = await usecases.subscription.show_subs_main_menu(user_id=call.from_user.id, session=session, user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
 
 
@@ -182,5 +182,26 @@ async def settings_language(call: CallbackQuery, session: AsyncSession, usecases
 @callback_router.callback_query(F.data.startswith('set_language:'))
 async def set_language(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
     _, language = call.data.split(':')
-    text, kbd = await usecases.settings.change_language(user_id=call.from_user.id, language=language, session=session, user=call.from_user)
+    text, kbd = await usecases.settings.change_language(user_id=call.from_user.id,
+                                                        language=language,
+                                                        session=session, 
+                                                        user=call.from_user)
     await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'create_media')
+async def create(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.create_media.main_menu(session=session, user=call.from_user)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'create_image')
+async def create_picture(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.create_media.picture_menu(session=session, user=call.from_user)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')
+
+
+@callback_router.callback_query(F.data == 'create_video')
+async def create_video(call: CallbackQuery, session: AsyncSession, usecases: UseCases):
+    text, kbd = await usecases.create_media.video_menu(session=session, user=call.from_user)
+    await call.message.edit_text(text=text, reply_markup=kbd, parse_mode='html')    

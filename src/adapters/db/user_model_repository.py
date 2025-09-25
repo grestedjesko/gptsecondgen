@@ -27,12 +27,3 @@ class UserModelRepository:
             session.add(new_entry)
 
         await session.commit()
-
-    @staticmethod
-    async def get_selected_model_class(model_id: int, session: AsyncSession) -> str | None:
-        """
-        Получить класс (ai_class) модели по её ID
-        """
-        query = sa.select(AiModels.model_class_id).where(AiModels.id == model_id)
-        result = await session.execute(query)
-        return result.scalar_one_or_none()

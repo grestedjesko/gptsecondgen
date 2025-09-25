@@ -26,6 +26,5 @@ class ModelConfig:
 
 @dataclass
 class ModelInfo:
-    model_class_id: int
     name: str
     description: str

@@ -1,15 +1,13 @@
-from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.types import Message
 from src.services.ai.model_selection_service import ModelSelectionService, ModelAccessStatus
 from app.db.models.user_ai_context import MessageType
 from src.adapters.db.dialog_repository import DialogRepository
-from src.adapters.db.usage_repository import UsageRepository
+# removed legacy usage repository
 from src.services.chat_history_service import ChatHistoryService
 from src.services.ai.prompt_service import PromptService
 from src.adapters.ai_providers.registry import ProviderRegistry
 from src.adapters.db.model_repository import ModelRepository
-from src.services.utils import get_week_start_date
 from src.services.ai.data_classes import MessageDTO
 from src.services.html_sanitizer import sanitize_to_telegram_html
 import re
@@ -102,20 +100,7 @@ class ProcessMessageUseCase:
 
         print(last_id)
 
-        if user_subtype == 0:
-            await UsageRepository.add_week_usage(messages_used=1,
-                                                 tokens_used=tokens_usage,
-                                                 user_id=user_id,
-                                                 model_class=model_config.ai_class,
-                                                 week_start=await get_week_start_date(),
-                                                 session=session)
-        else:
-            await UsageRepository.add_day_usage(messages_used=1,
-                                                tokens_used=tokens_usage,
-                                                user_id=user_id,
-                                                model_class=model_config.ai_class,
-                                                day=date.today(),
-                                                session=session)
+        # legacy usage tracking removed; counters handled via UsageCounterService
 
     async def edit_long_message(self, msg, text, parse_mode=None):
         # сначала пробуем как есть

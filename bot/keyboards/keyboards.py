@@ -1,13 +1,13 @@
 from typing import Optional
 import asyncio
-
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.db.models import AiRoles
+from app.db.models.packets import Packet, PacketType
 from config.i18n import get_text
 from src.services.i18n_service import I18nService
+
 
 
 class Keyboard:
@@ -25,21 +25,12 @@ class Keyboard:
 
     async def main_keyboard(self, has_subs: bool, trial_used: bool, user: User, session: AsyncSession = None) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
-
-        builder.add(InlineKeyboardButton(
-            text=await self._get_text("btn_select_ai", user, session), 
-            callback_data="select_ai"
-        ))
-        builder.add(InlineKeyboardButton(
-            text=await self._get_text("btn_select_role", user, session), 
-            callback_data="select_role"
-        ))
-
+        trial_used = True
         if not has_subs:
             if trial_used:
                 builder.add(InlineKeyboardButton(
                     text=await self._get_text("btn_buy_subs", user, session), 
-                    callback_data="subs"
+                    callback_data="subs_list"
                 ))
             else:
                 builder.add(InlineKeyboardButton(
@@ -47,30 +38,44 @@ class Keyboard:
                     callback_data="start_trial"
                 ))
 
-        builder.adjust(1)
-        # Эти три кнопки будут в одной строке
-        builder.row(
+        builder.add(InlineKeyboardButton(
+            text=await self._get_text("btn_select_ai", user, session), 
+            callback_data="select_ai"
+        ))
+
+        builder.add(InlineKeyboardButton(
+            text=await self._get_text("btn_select_role", user, session), 
+            callback_data="select_role"
+        ))
+
+        builder.add(InlineKeyboardButton(
+            text=await self._get_text("btn_create", user, session), 
+            callback_data="create_media"
+        ))
+
+        builder.add(
             InlineKeyboardButton(
                 text=await self._get_text("btn_profile", user, session), 
                 callback_data="profile"
-            ),
+            )
+        )
+
+        builder.add(
             InlineKeyboardButton(
-                text=await self._get_text("btn_support", user, session), 
-                url=self.support_link
-            ),
-            InlineKeyboardButton(
-                text=await self._get_text("settings_title", user, session), 
+                text=await self._get_text("btn_settings", user, session), 
                 callback_data="settings"
             )
         )
 
+        builder.adjust(1,2,1,2)
         return builder.as_markup()
 
 
     async def select_ai_keyboard(
         self,
         ai_models_list: list[tuple[int, str, str]],
-        allowed_classes: list[str],
+        neiro_packet_models: list[int],
+        premium_models: list[int],
         selected: int,
         user: User,
         session: AsyncSession = None
@@ -81,20 +86,23 @@ class Keyboard:
         """
         builder = InlineKeyboardBuilder()
 
-        for mid, name, ai_class in ai_models_list:
-            if ai_class in allowed_classes:
-                btn_text = name
-                if mid == selected:
-                    btn_text = '✅ ' + btn_text
+        for mid, name in ai_models_list:
+            if mid in premium_models:
+                btn_text = f'⭐️ {name}'
+            elif mid in neiro_packet_models:
+                btn_text = f'📂 {name}'
+            
             else:
-                btn_text = f"🔒 {name}"
+                btn_text = name
+            if mid == selected:
+                btn_text = '✅ ' + btn_text
             builder.add(InlineKeyboardButton(text=btn_text, callback_data=f"set_model:{mid}"))
 
         builder.add(InlineKeyboardButton(
             text=await self._get_text("btn_back", user, session), 
             callback_data='main_menu'
         ))
-        builder.adjust(1, 2, 1, 2, 2, 2, 1)
+        builder.adjust(1, 1, 2)
         return builder.as_markup()
 
     async def role_keyboard(self, user_id: int, roles_list: list, selected_role_id: int, subtype: int, user: User, page: int = 0, per_page: int = 5, session: AsyncSession = None):
@@ -391,14 +399,34 @@ class Keyboard:
         """Клавиатура главного меню настроек"""
         builder = InlineKeyboardBuilder()
         builder.add(InlineKeyboardButton(
-            text=get_text("settings_language", user, saved_language), 
+            text=get_text("btn_select_ai", user, saved_language), 
+            callback_data='select_ai'
+        ))
+
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_select_role", user, saved_language), 
+            callback_data='select_role'
+        ))  
+
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_settings_context", user, saved_language), 
+            callback_data='settings_context'
+        ))
+
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_settings_voice", user, saved_language), 
+            callback_data='settings_voice'
+        ))
+
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_settings_language", user, saved_language), 
             callback_data='settings_language'
         ))
         builder.add(InlineKeyboardButton(
             text=get_text("btn_back", user, saved_language), 
             callback_data='main_menu'
         ))
-        builder.adjust(1)
+        builder.adjust(2, 1, 1, 1, 1)
         return builder.as_markup()
 
     @staticmethod
@@ -420,3 +448,101 @@ class Keyboard:
         builder.adjust(1)
         return builder.as_markup()
 
+
+    @staticmethod
+    async def create_media_keyboard(user: User, saved_language: str = None):
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_create_picture", user, saved_language), 
+            callback_data='create_image', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_create_video", user, saved_language), 
+            callback_data='create_video', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_create_music", user, saved_language), 
+            callback_data='create_music', 
+        ))  
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user, saved_language), 
+            callback_data='main_menu', 
+        ))
+        builder.adjust(1)
+        return builder.as_markup()
+
+    @staticmethod
+    async def create_image_keyboard(user: User, saved_language: str = None):
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_replace_face", user, saved_language), 
+            callback_data='replace_face', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_remove_background", user, saved_language), 
+            callback_data='remove_background', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_enhance_image", user, saved_language), 
+            callback_data='enhance_image', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user, saved_language), 
+            callback_data='create_media', 
+        ))
+
+        builder.adjust(1)
+        return builder.as_markup()
+
+    @staticmethod
+    async def create_video_keyboard(user: User, saved_language: str = None):
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_veo", user, saved_language), 
+            callback_data='video_veo', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_video_hailuo", user, saved_language), 
+            callback_data='video_hailuo', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_video_kiling", user, saved_language), 
+            callback_data='video_kiling', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_video_pika", user, saved_language), 
+            callback_data='video_pika', 
+        ))
+        builder.add(InlineKeyboardButton(
+            text=get_text("btn_back", user, saved_language), 
+            callback_data='create_media', 
+        ))
+        builder.adjust(2,2,1)
+        return builder.as_markup()
+
+    @staticmethod
+    async def subs_main_menu(user: User, packet_types: list[PacketType]):
+        builder = InlineKeyboardBuilder()
+
+        builder.row(InlineKeyboardButton(
+            text=get_text("btn_premium", user), 
+            callback_data='premium'
+        )) 
+
+        # Packet buttons arranged in rows of 2
+        packets_builder = InlineKeyboardBuilder()
+        for packet_type in packet_types:
+            packets_builder.add(InlineKeyboardButton(
+                text=packet_type.name, 
+                callback_data=f'buy_packet_id={packet_type.id}'
+            ))
+        packets_builder.adjust(2)
+        builder.attach(packets_builder)
+        
+        # Single-button row at the bottom
+        builder.row(InlineKeyboardButton(
+            text=get_text("btn_back", user), 
+            callback_data='main_menu'
+        ))
+
+        return builder.as_markup()

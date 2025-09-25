@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     yookassa_shop_id: str
     yookassa_secret_key: str
 
+    free_weekly_limit: int = 1000
+
+
+    neiro_packet_models: list[int] = [7, 8, 9, 10, 11, 12]
+    premium_models: list[int] = [7, 8, 9, 10]
+
 
     class Config:
         env_file = ".env"
